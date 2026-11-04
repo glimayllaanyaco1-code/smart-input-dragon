@@ -172,28 +172,71 @@ const num = v => { if (v === '' || v === null || v === undefined) return ''; if 
 
 /* ---------------- almacenamiento compartido ---------------- */
 const Store = {
-  db: null, local: false, docs: {}, ready: false, listeners: [],
+  mode: 'local', db: null, local: true, docs: {}, ready: false, token: null, apiError: '', _poll: null,
+  get api() { return this.mode === 'api'; },
   async init() {
     try { if (window.claude && claude.use) this.db = await claude.use('db'); } catch (e) { this.db = null; }
-    if (!this.db) { this.local = true; this.loadLocal(); this.ready = true; render(); return; }
+    if (this.db) { this.mode = 'db'; this.local = false; return this.initDb(); }
+    try {
+      const r = await fetch('api/ping', { cache: 'no-store' });
+      const j = r.ok ? await r.json() : null;
+      if (j && j.ok && j.kv) { this.mode = 'api'; this.local = false; try { this.token = sessionStorage.getItem('sid2:tok'); } catch (e) { } if (SES && this.token) await this.load(); else { if (SES) cerrarSesion(); this.ready = true; } render(); this.startPoll(); return; }
+      if (j && j.ok && !j.kv) this.apiError = 'El servidor está activo pero falta configurar la base de datos (binding KV «DATA»). Mientras tanto se usa el modo local.';
+    } catch (e) { }
+    this.mode = 'local'; this.local = true; this.loadLocal(); this.ready = true; render();
+  },
+  initDb() {
     let pending = EMPS.length;
-    const timer = setTimeout(() => { if (!this.ready) { this.ready = true; $('#dbnote') && ($('#dbnote').textContent = 'Conectando con la base de datos…'); render(); } }, 10000);
+    const timer = setTimeout(() => { if (!this.ready) { this.ready = true; render(); } }, 10000);
     EMPS.forEach(e => {
       this.db.doc('cierres/' + PER + '-' + e.id).onSnapshot(snap => {
         this.docs[e.id] = snap.exists ? JSON.parse(JSON.stringify(snap.data())) : {};
-        if (!snap.metadata.fromCache && pending > 0) { pending--; }
+        if (!snap.metadata.fromCache && pending > 0) pending--;
         if (pending === 0 && !this.ready) { this.ready = true; clearTimeout(timer); }
         render();
       }, () => { this.ready = true; render(); });
     });
   },
   loadLocal() { EMPS.forEach(e => { try { this.docs[e.id] = JSON.parse(localStorage.getItem('sid2:' + PER + ':' + e.id) || '{}'); } catch (x) { this.docs[e.id] = this.docs[e.id] || {}; } }); },
+  async req(method, path, body) {
+    const r = await fetch('api/' + path, { method, cache: 'no-store', headers: Object.assign({ 'content-type': 'application/json' }, this.token ? { authorization: 'Bearer ' + this.token } : {}), body: body ? JSON.stringify(body) : undefined });
+    let j = {}; try { j = await r.json(); } catch (e) { }
+    if (r.status === 401 && path !== 'login') { cerrarSesion(j.error || 'Sesión vencida'); throw new Error(j.error || 'Sesión vencida'); }
+    if (!r.ok) throw new Error(j.error || ('Error ' + r.status));
+    return j;
+  },
+  async login(u, p) {
+    if (!this.api) { const a = ACCOUNTS.find(x => x.u === u && x.p === p); return a || null; }
+    const j = await this.req('POST', 'login', { u, p });
+    this.token = j.token; try { sessionStorage.setItem('sid2:tok', j.token); } catch (e) { }
+    return ACCOUNTS.find(x => x.u === j.user.u) || j.user;
+  },
+  async load(silent) {
+    if (!this.api) return;
+    try {
+      const j = await this.req('GET', 'cierre?per=' + PER);
+      const before = JSON.stringify(this.docs);
+      Object.entries(j.docs).forEach(([k, v]) => this.docs[k] = v);
+      const changed = before !== JSON.stringify(this.docs);
+      this.ready = true;
+      if (changed || !silent) render();
+    } catch (e) { this.ready = true; if (!silent) { toast('No se pudo leer el servidor: ' + e.message, 'bad'); render(); } }
+  },
+  startPoll() {
+    clearInterval(this._poll);
+    this._poll = setInterval(() => { if (SES && this.api && !document.hidden) this.load(true); }, 15000);
+    document.addEventListener('visibilitychange', () => { if (!document.hidden && SES && this.api) this.load(true); });
+  },
   get(id) { return this.docs[id] || {}; },
   async save(id, patch) {
     const next = Object.assign({}, this.get(id), patch);
     Object.keys(next).forEach(k => next[k] === undefined && delete next[k]);
+    if (this.api) {
+      try { const j = await this.req('PUT', 'cierre/' + id + '?per=' + PER, next); this.docs[id] = j.doc; render(); return true; }
+      catch (e) { toast('No se pudo guardar: ' + e.message, 'bad'); return false; }
+    }
     this.docs[id] = next;
-    if (!this.local) {
+    if (this.mode === 'db' && !this.local) {
       try { await this.db.doc('cierres/' + PER + '-' + id).set(next); return true; }
       catch (e) {
         if (e && e.code === 'invalid_argument') { this.local = true; toast('Sin permiso de escritura compartida: se guarda solo en este navegador.', 'bad'); }
@@ -202,8 +245,21 @@ const Store = {
     }
     try { localStorage.setItem('sid2:' + PER + ':' + id, JSON.stringify(next)); } catch (x) { }
     render(); return true;
-  }
+  },
+  async reset() {
+    for (const e of EMPS) {
+      if (this.api) { try { await this.req('PUT', 'cierre/' + e.id + '?per=' + PER, {}); } catch (x) { toast(x.message, 'bad'); } }
+      else if (this.mode === 'db' && !this.local) { try { await this.db.doc('cierres/' + PER + '-' + e.id).set({}); } catch (x) { } }
+      this.docs[e.id] = {}; try { localStorage.removeItem('sid2:' + PER + ':' + e.id); } catch (x) { }
+    }
+  },
+  modoTxt() { return this.api ? '● Datos compartidos en el servidor: lo que envía el cliente le llega al administrador desde cualquier equipo (se actualiza cada 15 s).' : this.mode === 'db' && !this.local ? '● Datos compartidos: lo que envía el cliente aparece aquí en vivo.' : '⚠ Modo local: los datos se guardan solo en este navegador.'; }
 };
+function cerrarSesion(msg) {
+  SES = null; UI.grid = null; UI.upload = null; Store.token = null;
+  try { sessionStorage.removeItem('sid2:ses'); sessionStorage.removeItem('sid2:tok'); } catch (e) { }
+  if (msg) toast(msg, 'bad'); render();
+}
 
 /* ---------------- descargas ---------------- */
 let DL = null;
@@ -596,7 +652,7 @@ function vTablero() {
       <div class="kpi"><div class="kt">Procesadas en Buk</div><div class="kv">${k(x => x.d.buk)}/${EMPS.length}</div><div class="ks">reporte de planilla cargado</div></div>
       <div class="kpi ${tot.some(x => x.X && !x.X.ok100) ? 'kbad' : ''}"><div class="kt">Netos por analizar</div><div class="kv">${tot.reduce((s, x) => s + (x.X ? x.X.obs : 0), 0)}</div><div class="ks">${k(x => x.X)} empresas validadas</div></div>
       <div class="kpi ${k(x => x.d.aprob) === EMPS.length ? 'kok' : ''}"><div class="kt">Emisión autorizada</div><div class="kv">${k(x => x.d.aprob)}/${EMPS.length}</div><div class="ks">solo con 100 % cuadrado</div></div></div>
-      <div class="row gap mt small muted">${Store.local ? '⚠ Modo local: los datos se guardan solo en este navegador.' : '● Datos compartidos: lo que envía el cliente aparece aquí en vivo.'}<span class="sp"></span><button class="lnk" id="bReset">Reiniciar cierre de prueba</button></div>
+      <div class="row gap mt small muted">${Store.modoTxt()}${Store.api ? ' <button class="lnk" id="bRefresh">Actualizar ahora</button>' : ''}<span class="sp"></span><button class="lnk" id="bReset">Reiniciar cierre de prueba</button></div>
       <div id="resetBox" class="hidden mt"><div class="banner bad">¿Borrar novedades, reportes y autorizaciones de las 3 empresas? <button class="btn" id="bResetOk">Sí, reiniciar</button> <button class="btn" id="bResetNo">Cancelar</button></div></div></section>
     <div class="ecards">${cards}</div>`;
 }
@@ -612,7 +668,7 @@ function vLogin() {
     <div id="lerr" class="tbad small"></div><button class="btn primary wide mt">${t.entrar}</button></form>
     <details class="mt small"><summary>${lang === 'en' ? 'Test accounts' : lang === 'zh' ? '测试账号' : 'Cuentas de prueba'}</summary><table class="grid sm mt"><thead><tr><th>Rol</th><th>Usuario</th><th>Contraseña</th></tr></thead><tbody>
     ${ACCOUNTS.map(a => `<tr><td>${a.rol === 'admin' ? 'Administrador (planillero)' : 'Cliente · ' + esc(a.nombre)}</td><td class="mono">${a.u}</td><td class="mono">${a.p}</td></tr>`).join('')}</tbody></table>
-    <p class="muted">Acceso de demostración del prototipo; en producción se usaría autenticación real.</p></details></div>`;
+    <p class="muted">Cuentas de demostración del prototipo.</p></details>${Store.apiError ? `<div class="banner warn mt small">${esc(Store.apiError)}</div>` : !Store.api && Store.mode === 'local' && Store.ready ? `<div class="banner warn mt small">Modo local: sin servidor, los datos se guardan solo en este navegador.</div>` : ''}</div>`;
 }
 function render() {
   const ae = document.activeElement; const focusKey = ae && ae.dataset && ae.dataset.k ? [ae.dataset.i, ae.dataset.k, ae.selectionStart] : null;
@@ -632,11 +688,14 @@ function render() {
   if (focusKey) { const el = document.querySelector(`[data-i="${focusKey[0]}"][data-k="${focusKey[1]}"]`); if (el) { el.focus(); try { el.setSelectionRange(focusKey[2], focusKey[2]); } catch (e) { } } }
 }
 function bind() {
-  const fl = $('#fLogin'); if (fl) fl.onsubmit = ev => {
-    ev.preventDefault(); const a = ACCOUNTS.find(x => x.u === $('#lu').value.trim().toLowerCase() && x.p === $('#lp').value);
+  const fl = $('#fLogin'); if (fl) fl.onsubmit = async ev => {
+    ev.preventDefault(); const btn = fl.querySelector('button'); btn.disabled = true;
+    let a = null; try { a = await Store.login($('#lu').value.trim().toLowerCase(), $('#lp').value); } catch (e) { a = null; $('#lerr').textContent = e.message || T().badLogin; btn.disabled = false; return; }
+    btn.disabled = false;
     if (!a) { $('#lerr').textContent = T().badLogin; return; }
     SES = a; UI.grid = null; UI.upload = null; UI.tab = 'tablero'; if (a.emp) lang = EMP[a.emp].idioma; $('#selLang').value = lang;
-    try { sessionStorage.setItem('sid2:ses', JSON.stringify({ u: a.u })); } catch (e) { } render();
+    try { sessionStorage.setItem('sid2:ses', JSON.stringify({ u: a.u })); } catch (e) { }
+    if (Store.api) { Store.ready = false; render(); await Store.load(); } else render();
   };
   const se = $('#selEmp'); if (se) se.onchange = ev => { UI.emp = ev.target.value; render(); };
   // cliente
@@ -667,13 +726,14 @@ function bind() {
   document.querySelectorAll('[data-aut]').forEach(b => b.onclick = () => aut(b.dataset.aut));
   document.querySelectorAll('[data-reab]').forEach(b => b.onclick = () => Store.save(b.dataset.reab, { aprob: undefined }));
   document.querySelectorAll('[data-go]').forEach(b => b.onclick = () => { UI.tab = b.dataset.go; UI.emp = b.dataset.e; render(); });
+  const rf = $('#bRefresh'); if (rf) rf.onclick = () => Store.load();
   const rs = $('#bReset'); if (rs) rs.onclick = () => $('#resetBox').classList.remove('hidden');
   const rn = $('#bResetNo'); if (rn) rn.onclick = () => $('#resetBox').classList.add('hidden');
-  const ro = $('#bResetOk'); if (ro) ro.onclick = async () => { for (const e of EMPS) { Store.docs[e.id] = {}; if (!Store.local) { try { await Store.db.doc('cierres/' + PER + '-' + e.id).set({}); } catch (x) { } } try { localStorage.removeItem('sid2:' + PER + ':' + e.id); } catch (x) { } } toast('Cierre de prueba reiniciado', 'ok'); render(); };
+  const ro = $('#bResetOk'); if (ro) ro.onclick = async () => { await Store.reset(); toast('Cierre de prueba reiniciado', 'ok'); render(); };
 }
 document.addEventListener('DOMContentLoaded', () => {
   $('#selLang').onchange = ev => { lang = ev.target.value; render(); };
-  $('#bSalir').onclick = () => { SES = null; UI.grid = null; UI.upload = null; try { sessionStorage.removeItem('sid2:ses'); } catch (e) { } lang = 'es'; $('#selLang').value = 'es'; render(); };
+  $('#bSalir').onclick = () => { cerrarSesion(); lang = 'es'; $('#selLang').value = 'es'; render(); };
   document.querySelectorAll('#nav [data-tab]').forEach(b => b.onclick = () => { UI.tab = b.dataset.tab; render(); });
   if (SES && SES.emp) { lang = EMP[SES.emp].idioma; $('#selLang').value = lang; }
   render(); Store.init();
