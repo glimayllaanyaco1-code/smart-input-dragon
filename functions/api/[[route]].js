@@ -12,7 +12,9 @@
  *   - Secreto SESSION_SECRET (texto largo cualquiera)
  */
 
-const EMPRESAS = ['ALFA', 'BETA', 'GAMMA'];
+const EMPRESAS = ['ALFA', 'BETA', 'GAMMA', 'FLOWX'];
+// Empresas con datos reales: solo se habilitan cuando las contraseñas son privadas (variable ACCOUNTS_JSON).
+const REALES = ['FLOWX'];
 
 // Contraseñas guardadas como hash SHA-256 de "sid:<usuario>:<contraseña>".
 // Para cambiarlas en producción, define la variable ACCOUNTS_JSON con este mismo formato.
@@ -40,8 +42,8 @@ async function hmac(secret, msg) {
   return b64u(await crypto.subtle.sign('HMAC', key, enc.encode(msg)));
 }
 function cuentas(env) {
-  try { if (env.ACCOUNTS_JSON) return JSON.parse(env.ACCOUNTS_JSON); } catch (e) { }
-  return DEFAULT_ACCOUNTS;
+  if (!env.ACCOUNTS_JSON) return DEFAULT_ACCOUNTS;
+  try { const a = JSON.parse(env.ACCOUNTS_JSON); return Array.isArray(a) ? a : []; } catch (e) { return []; } // si está mal escrito, nadie entra (no vuelve a las cuentas de prueba)
 }
 const secreto = env => env.SESSION_SECRET || 'cambia-este-secreto-en-cloudflare';
 
@@ -68,7 +70,7 @@ export async function onRequest(context) {
   const url = new URL(request.url);
   const m = request.method;
 
-  if (route[0] === 'ping') return json({ ok: true, kv: !!env.DATA, secreto: !!env.SESSION_SECRET });
+  if (route[0] === 'ping') return json({ ok: true, kv: !!env.DATA, secreto: !!env.SESSION_SECRET, cuentasPrivadas: !env.ACCOUNTS_JSON ? false : cuentas(env).length ? true : 'formato inválido' });
   if (!env.DATA) return json({ error: 'Falta configurar el binding KV "DATA" en Cloudflare.' }, 503);
 
   if (route[0] === 'login' && m === 'POST') {
@@ -86,7 +88,7 @@ export async function onRequest(context) {
     if (!perOk(per)) return json({ error: 'Periodo inválido' }, 400);
 
     if (m === 'GET' && !route[1]) {
-      const emps = user.rol === 'admin' ? EMPRESAS : [user.emp];
+      const emps = (user.rol === 'admin' ? EMPRESAS : [user.emp]).filter(e => env.ACCOUNTS_JSON || !REALES.includes(e));
       const docs = {};
       for (const e of emps) docs[e] = (await env.DATA.get(clave(per, e), 'json')) || {};
       return json({ docs, user: publico(user) });
@@ -95,6 +97,7 @@ export async function onRequest(context) {
     if (m === 'PUT' && route[1]) {
       const emp = String(route[1]).toUpperCase();
       if (!EMPRESAS.includes(emp)) return json({ error: 'Empresa no existe' }, 404);
+      if (REALES.includes(emp) && !env.ACCOUNTS_JSON) return json({ error: 'Para usar datos reales primero configura contraseñas privadas (ACCOUNTS_JSON) en Cloudflare.' }, 403);
       let doc; try { doc = await request.json(); } catch (e) { return json({ error: 'Solicitud inválida' }, 400); }
       if (!doc || typeof doc !== 'object' || Array.isArray(doc)) return json({ error: 'Documento inválido' }, 400);
       const raw = JSON.stringify(doc);

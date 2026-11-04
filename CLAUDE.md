@@ -29,6 +29,12 @@ Modos de datos en la página (`Store`): `api` (Cloudflare, compartido), `db` (ar
 3. Commit en español y push a `main`. Cloudflare publica en 1–2 min. Verificar `https://smart-input-dragon.pages.dev/api/ping` → `{"ok":true,"kv":true,"secreto":true}`.
 4. Decirle a Gaby que recargue con Ctrl + F5.
 
+## Empresa real (FLOW-X)
+- `FLOWX` tiene `real: true`: su maestro **no** está en el repositorio; el admin lo carga desde el reporte de planilla de Buk y se guarda en KV (campo `maestro` del documento del cierre).
+- El servidor solo habilita empresas reales si existe la variable `ACCOUNTS_JSON` (contraseñas privadas). Si está mal escrita, nadie entra.
+- Formatos reales que debe leer: reporte de Buk en inglés (`Document Number`, `NET PAY`) y R01 del PDT PLAME en .xml (encabezado en dos filas: «Documento de Identidad / Número», «Neto a pagar»).
+- Nunca subir al repositorio archivos, nombres, DNI ni contraseñas reales.
+
 ## Reglas
 - Solo datos **ficticios** (el repositorio es público). Nunca planillas ni DNI reales.
 - Parámetros 2026-10: RMV S/ 1,230; UIT S/ 5,500; AFP 10 %, prima 1.37 % (tope S/ 12,732.70), ONP 13 %, EsSalud 9 %.
