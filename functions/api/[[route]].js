@@ -12,9 +12,9 @@
  *   - Secreto SESSION_SECRET (texto largo cualquiera)
  */
 
-const EMPRESAS = ['ALFA', 'BETA', 'GAMMA', 'FLOWX'];
+const EMPRESAS = ['ALFA', 'BETA', 'GAMMA'];
 // Empresas con datos reales: solo se habilitan cuando las contraseñas son privadas (variable ACCOUNTS_JSON).
-const REALES = ['FLOWX'];
+const REALES = ['ALFA'];
 
 // Contraseñas guardadas como hash SHA-256 de "sid:<usuario>:<contraseña>".
 // Para cambiarlas en producción, define la variable ACCOUNTS_JSON con este mismo formato.
