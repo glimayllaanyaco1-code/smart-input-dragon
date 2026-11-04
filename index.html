@@ -350,6 +350,11 @@ const NOVALIAS = {
   obs: ['observaciones', 'comments', '备注']
 };
 const REQCOLS = ['dni', 'dias', 'faltas', 'he25', 'he35', 'movimiento', 'fecha'];
+function leerLibro(file, cb) {
+  const fr = new FileReader();
+  fr.onload = ev => { try { const wb = XLSX.read(new Uint8Array(ev.target.result), { type: 'array' }); cb(null, wb.SheetNames.map(n => ({ name: n, aoa: XLSX.utils.sheet_to_json(wb.Sheets[n], { header: 1, raw: true, defval: '' }) }))); } catch (e) { cb(e); } };
+  fr.readAsArrayBuffer(file);
+}
 function leerAOA(file, cb) {
   const fr = new FileReader();
   fr.onload = ev => { try { const wb = XLSX.read(new Uint8Array(ev.target.result), { type: 'array' }); const ws = wb.Sheets[wb.SheetNames[0]]; cb(null, XLSX.utils.sheet_to_json(ws, { header: 1, raw: true, defval: '' })); } catch (e) { cb(e); } };
@@ -497,11 +502,11 @@ function vNovedades() {
    ADMINISTRADOR — motor de validación cruzada de netos (Buk ↔ PLAME R01)
    ===================================================================== */
 const REPALIAS = {
-  doc: ['numerodedocumento', 'numerodoc', 'nrodocumento', 'nrodoc', 'ndoc', 'nodoc', 'dni', 'documento', 'numdoc', 'nrodedocumento', 'documentnumber', 'docidentidad', 'numerodocumento'],
+  doc: ['rut', 'dnice', 'numerodeidentificacion', 'numeroidentificacion', 'identificacion', 'documentodeidentidad', 'nrodni', 'numerodni', 'numerodedocumento', 'numerodoc', 'nrodocumento', 'nrodoc', 'ndoc', 'nodoc', 'dni', 'documento', 'numdoc', 'nrodedocumento', 'documentnumber', 'docidentidad', 'numerodocumento'],
   nombre: ['apellidosynombres', 'apellidosnombres', 'nombre', 'nombres', 'trabajador', 'nombrecompleto', 'colaborador', 'fullname'],
   ing: ['totalingresos', 'totaldeingresos', 'ingresos', 'totalremuneraciones', 'totalingreso', 'totalhaberes', 'haberes'],
   desc: ['totaldescuentos', 'totaldedescuentos', 'descuentos', 'totaldescuento', 'totalretenciones', 'totaldeducciones'],
-  neto: ['liquidoapagar', 'liquidopagar', 'liquido', 'netoapagar', 'netopagar', 'neto', 'totalneto', 'montoapagar', 'totalapagar', 'netopagado', 'netoarecibir', 'netpay']
+  neto: ['sueldoliquido', 'totalliquido', 'montoliquido', 'liquidoarecibir', 'liquidoapago', 'netoapagartrabajador', 'totalnetoapagar', 'liquidoapagar', 'liquidopagar', 'liquido', 'netoapagar', 'netopagar', 'neto', 'totalneto', 'montoapagar', 'totalapagar', 'netopagado', 'netoarecibir', 'netpay']
 };
 function detectar(aoa) {
   for (let i = 0; i < Math.min(aoa.length, 40); i++) {
@@ -526,11 +531,13 @@ function extraer(aoa, hi, m) {
 const TMP = {};   // aoa de archivos pendientes de mapeo manual
 function onUploadRep(file, src) {
   const id = UI.emp;
-  leerAOA(file, (err, aoa) => {
+  leerLibro(file, (err, sheets) => {
     if (err) return toast('No se pudo leer el archivo: ' + err.message, 'bad');
-    const det = detectar(aoa);
-    if (!det) { TMP[id + src] = { aoa, file: file.name }; UI.map[id + src] = { hi: 0 }; toast('No reconocí las columnas: indícalas manualmente.', 'bad'); return render(); }
-    guardarRep(id, src, file.name, aoa, det.hi, det.m, 'automática');
+    for (const sh of sheets) { const det = detectar(sh.aoa); if (det) return guardarRep(id, src, file.name, sh.aoa, det.hi, det.m, 'automática' + (sheets.length > 1 ? ', hoja «' + sh.name + '»' : '')); }
+    const si = sheets.reduce((b, sh, i) => sh.aoa.length > sheets[b].aoa.length ? i : b, 0);
+    const pivot = sheets.some(sh => sh.aoa.slice(0, 10).some(r => r.some(v => /^(row labels|etiquetas de fila|sum of|suma de)/i.test(String(v).trim()))));
+    TMP[id + src] = { sheets, si, file: file.name, pivot }; UI.map[id + src] = { hi: 0 };
+    toast('No reconocí las columnas automáticamente: indícalas manualmente.', 'bad'); render();
   });
 }
 function guardarRep(id, src, file, aoa, hi, m, modo) {
@@ -562,11 +569,13 @@ function cruce(id) {
 const EST = { CUADRA: ['Cuadra (0.00)', 'pok'], REDONDEO: ['Cuadra (redondeo 0.01)', 'pok2'], ANALIZAR: ['Analizar', 'pbad'], FALTA_PLAME: ['Falta en PLAME', 'pbad'], FALTA_BUK: ['Falta en Buk', 'pbad'] };
 function mapUI(id, src) {
   const t = TMP[id + src]; if (!t) return '';
-  const st = UI.map[id + src]; const hi = st.hi || 0; const head = t.aoa[hi] || [];
-  const opts = (k) => `<select data-mapk="${k}" data-src="${src}"><option value="">—</option>${head.map((h, j) => `<option value="${j}" ${st[k] == j ? 'selected' : ''}>${esc(XLSX.utils.encode_col(j))}: ${esc(String(h).slice(0, 30))}</option>`).join('')}</select>`;
-  return `<div class="mapbox mt"><div class="small"><b>Asigna las columnas de ${esc(t.file)}</b></div>
-    <div class="row wrap gap mt small"><label>Fila de encabezados <select data-maphi="${src}">${t.aoa.slice(0, 40).map((r, i) => `<option value="${i}" ${i === hi ? 'selected' : ''}>${i + 1}: ${esc(r.filter(x => x !== '').slice(0, 3).join(' | ').slice(0, 50))}</option>`).join('')}</select></label>
-    <label>Documento ${opts('doc')}</label><label>Nombre ${opts('nombre')}</label><label>Neto a pagar ${opts('neto')}</label><label>Total ingresos ${opts('ing')}</label><label>Total descuentos ${opts('desc')}</label>
+  const st = UI.map[id + src]; const hi = st.hi || 0; const aoa = t.sheets[t.si].aoa; const head = aoa[hi] || [];
+  const opts = (k) => `<select data-mapk="${k}" data-src="${src}"><option value="" ${st[k] === undefined ? 'selected' : ''}>— elegir —</option>${head.map((h, j) => String(h).trim() === '' ? '' : `<option value="${j}" ${st[k] === j ? 'selected' : ''}>${esc(XLSX.utils.encode_col(j))}: ${esc(String(h).slice(0, 30))}</option>`).join('')}</select>`;
+  return `<div class="mapbox mt"><div class="small"><b>No reconocí las columnas de ${esc(t.file)}.</b> Se necesita un reporte <b>por trabajador</b> con el número de documento (DNI) y el neto a pagar (o el total de ingresos y de descuentos).</div>
+    ${t.pivot ? `<div class="small mt tbad">Este archivo tiene una <b>tabla dinámica</b> (resumen). Si tiene otra hoja con el detalle por trabajador, elígela abajo; si no, exporta desde Buk el reporte de planilla detallado (libro de remuneraciones).</div>` : ''}
+    <div class="row wrap gap mt small">${t.sheets.length > 1 ? `<label>Hoja <select data-mapsheet="${src}">${t.sheets.map((sh, i) => `<option value="${i}" ${i === t.si ? 'selected' : ''}>${esc(sh.name)} (${sh.aoa.length} filas)</option>`).join('')}</select></label>` : ''}
+    <label>Fila de encabezados <select data-maphi="${src}">${aoa.slice(0, 40).map((r, i) => `<option value="${i}" ${i === hi ? 'selected' : ''}>${i + 1}: ${esc(r.filter(x => x !== '').slice(0, 3).join(' | ').slice(0, 50))}</option>`).join('')}</select></label></div>
+    <div class="row wrap gap mt small"><label>Documento (DNI) ${opts('doc')}</label><label>Nombre ${opts('nombre')}</label><label>Neto a pagar ${opts('neto')}</label><label>Total ingresos ${opts('ing')}</label><label>Total descuentos ${opts('desc')}</label>
     <button class="btn go" data-mapok="${src}">Aplicar</button></div></div>`;
 }
 function vValidacion() {
@@ -712,12 +721,13 @@ function bind() {
   const bnc = $('#bNovCli'); if (bnc) bnc.onclick = () => bajarNovCliente(UI.emp);
   const bc = $('#bComp'); if (bc) bc.onclick = () => bajarComprobantes(UI.emp);
   document.querySelectorAll('[data-rep]').forEach(i => i.onchange = ev => { if (ev.target.files[0]) onUploadRep(ev.target.files[0], i.dataset.rep); ev.target.value = ''; });
+  document.querySelectorAll('[data-mapsheet]').forEach(s => s.onchange = () => { TMP[UI.emp + s.dataset.mapsheet].si = +s.value; UI.map[UI.emp + s.dataset.mapsheet] = { hi: 0 }; render(); });
   document.querySelectorAll('[data-maphi]').forEach(s => s.onchange = () => { UI.map[UI.emp + s.dataset.maphi] = { hi: +s.value }; render(); });
   document.querySelectorAll('[data-mapk]').forEach(s => s.onchange = () => { const st = UI.map[UI.emp + s.dataset.src]; if (s.value === '') delete st[s.dataset.mapk]; else st[s.dataset.mapk] = +s.value; });
   document.querySelectorAll('[data-mapok]').forEach(b => b.onclick = () => {
     const src = b.dataset.mapok, st = UI.map[UI.emp + src], t = TMP[UI.emp + src]; const m = {}; ['doc', 'nombre', 'neto', 'ing', 'desc'].forEach(k => { if (st[k] !== undefined) m[k] = st[k]; });
     if (m.doc === undefined || (m.neto === undefined && (m.ing === undefined || m.desc === undefined))) return toast('Indica la columna de documento y la de neto (o ingresos y descuentos).', 'bad');
-    guardarRep(UI.emp, src, t.file, t.aoa, st.hi || 0, m, 'manual');
+    guardarRep(UI.emp, src, t.file, t.sheets[t.si].aoa, st.hi || 0, m, 'manual' + (t.sheets.length > 1 ? ', hoja «' + t.sheets[t.si].name + '»' : ''));
   });
   const cd = $('#chkDif'); if (cd) cd.onchange = ev => { UI.soloDif = ev.target.checked; render(); };
   const br = $('#bRep'); if (br) br.onclick = () => reporteValidacion(UI.emp);
