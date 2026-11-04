@@ -1,0 +1,683 @@
+<!DOCTYPE html>
+<html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Smart-Input Dragon — Prototipo</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+:root{--navy:#17364F;--navy2:#22506f;--ink:#1d2430;--mut:#6b7380;--line:#e3e7ec;--bg:#f4f6f8;--ok:#1f8a4c;--okb:#e7f5ec;--bad:#c0392b;--badb:#fdecea;--warn:#b7791f;--warnb:#fdf5e6;--card:#fff}
+*{box-sizing:border-box}body{margin:0;font-family:Inter,system-ui,sans-serif;color:var(--ink);background:var(--bg);font-size:14px}
+header{background:var(--navy);color:#fff;padding:14px 22px;display:flex;align-items:center;gap:16px;flex-wrap:wrap}
+.logo{display:flex;align-items:center;gap:10px}.logo .m{width:34px;height:34px;border-radius:8px;background:#e8b04a;color:var(--navy);display:grid;place-items:center;font-weight:700}
+.logo b{font-size:17px;letter-spacing:.2px}.logo small{display:block;opacity:.75;font-size:12px}
+header .sp{flex:1}header select,header button{background:var(--navy2);color:#fff;border:1px solid #3c6c8d;border-radius:7px;padding:6px 10px;font:inherit;cursor:pointer}
+#per{font-size:12px;opacity:.85}
+nav{background:#fff;border-bottom:1px solid var(--line);padding:0 22px;display:flex;gap:4px;overflow-x:auto}
+nav button{border:0;background:none;padding:13px 14px;font:inherit;font-weight:600;color:var(--mut);cursor:pointer;border-bottom:3px solid transparent;white-space:nowrap}
+nav button.on{color:var(--navy);border-color:#e8b04a}
+main{padding:18px 22px;max-width:1280px;margin:0 auto}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px;margin-bottom:16px}
+.card h3{margin:0 0 10px;font-size:15px}
+.row{display:flex;align-items:center}.wrap{flex-wrap:wrap}.gap{gap:10px}.mt{margin-top:12px}
+label{font-weight:500}select{font:inherit;padding:6px 8px;border-radius:7px;border:1px solid var(--line);margin-left:6px}
+.segs{display:flex;gap:6px;flex-wrap:wrap}.seg{border:1px solid var(--line);background:#fff;border-radius:999px;padding:6px 12px;font:inherit;cursor:pointer}
+.seg.on{background:var(--navy);color:#fff;border-color:var(--navy)}
+.b{display:inline-block;min-width:20px;padding:0 6px;border-radius:9px;background:#eef1f4;color:var(--ink);font-size:11px;font-weight:700;text-align:center}.seg.on .b{background:#fff}
+.b.ok{background:var(--okb);color:var(--ok)}.b.bad{background:var(--badb);color:var(--bad)}.b.warn{background:var(--warnb);color:var(--warn)}
+.btn{border:1px solid var(--line);background:#fff;border-radius:8px;padding:8px 13px;font:inherit;font-weight:600;cursor:pointer;display:inline-flex;gap:6px;align-items:center}
+.btn.primary{background:var(--navy);color:#fff;border-color:var(--navy)}.btn.go{background:var(--ok);color:#fff;border-color:var(--ok)}.btn:disabled{opacity:.45;cursor:not-allowed}
+.hint{color:var(--mut);font-size:12px}.muted{color:var(--mut)}.small{font-size:12px}.mono{font-family:'JetBrains Mono',monospace;font-size:12.5px}
+.filemeta{display:flex;gap:16px;flex-wrap:wrap;font-size:12.5px;color:var(--mut);margin-bottom:8px}
+.banner{padding:9px 12px;border-radius:8px;font-weight:500}.banner.ok{background:var(--okb);color:var(--ok)}.banner.bad{background:var(--badb);color:var(--bad)}
+.tablewrap{overflow:auto;border:1px solid var(--line);border-radius:10px;margin-top:10px;max-height:560px}
+table.grid{border-collapse:collapse;width:100%}.grid th{position:sticky;top:0;background:var(--navy);color:#fff;text-align:left;font-weight:600;font-size:12px;padding:8px 10px;white-space:nowrap}
+.grid td{border-top:1px solid var(--line);padding:7px 10px;vertical-align:top}.grid tr:nth-child(even) td{background:#fafbfc}
+.grid tr.rbad td{background:#fff7f6}.num{text-align:right}
+td.ed{outline:none;cursor:text}td.ed:focus{box-shadow:inset 0 0 0 2px #e8b04a;background:#fffdf5!important}
+td.cbad{color:var(--bad);font-weight:700;text-decoration:underline wavy var(--bad)}td.cwarn{color:var(--warn);font-weight:600}
+.tok{color:var(--ok)}.tbad{color:var(--bad)}.twarn{color:var(--warn)}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px}
+.kpi{border:1px solid var(--line);border-radius:10px;padding:12px}.kpi .kt{font-size:12px;color:var(--mut);font-weight:600}.kpi .kv{font-size:24px;font-weight:700;margin:4px 0}.kpi .ks{font-size:12px;color:var(--mut)}
+.kpi.kok{border-left:4px solid var(--ok)}.kpi.kbad{border-left:4px solid var(--bad)}.kpi.kbad .kv{color:var(--bad)}.kpi.kok .kv{color:var(--ok)}
+.pill{display:inline-block;padding:2px 8px;border-radius:999px;font-size:11px;font-weight:700;white-space:nowrap}.pok{background:var(--okb);color:var(--ok)}.pbad{background:var(--badb);color:var(--bad)}
+.lab{font-family:Inter;font-size:10px;color:var(--mut);margin-right:4px}
+.chk{display:flex;gap:6px;align-items:center}
+.ecards{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:14px}
+.ecard{background:#fff;border:1px solid var(--line);border-radius:12px;padding:14px;border-top:5px solid #ccc}
+.ecard.sok{border-top-color:var(--ok)}.ecard.swarn{border-top-color:var(--warn)}.ecard.sbad{border-top-color:var(--bad)}.ecard.sap{border-top-color:var(--navy)}
+.eh{display:flex;justify-content:space-between;gap:8px;align-items:flex-start}.en{font-weight:700;font-size:15px}
+.state{font-size:12px;font-weight:700;padding:3px 9px;border-radius:999px;background:#eef1f4;white-space:nowrap}
+.sok .state{background:var(--okb);color:var(--ok)}.swarn .state{background:var(--warnb);color:var(--warn)}.sbad .state{background:var(--badb);color:var(--bad)}.sap .state{background:var(--navy);color:#fff}
+.cols{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:10px}
+.kl{list-style:none;margin:0;padding:0}.kl li{display:flex;justify-content:space-between;gap:6px;font-size:12.5px;padding:4px 0;border-bottom:1px dashed var(--line)}.kl .kh{font-weight:700;color:var(--mut);font-size:11px;text-transform:uppercase;letter-spacing:.4px}
+.apnote{margin-top:8px;color:var(--navy)}.just{margin-top:10px}.just textarea{width:100%;font:inherit;border:1px solid var(--line);border-radius:8px;padding:8px;margin:6px 0}.hidden{display:none}
+.params{columns:2;font-size:13px}.params li{margin:3px 0}
+#toast{position:fixed;bottom:18px;left:50%;transform:translateX(-50%) translateY(80px);background:var(--ink);color:#fff;padding:10px 16px;border-radius:9px;transition:.25s;opacity:0;z-index:9}
+#toast.show{transform:translateX(-50%);opacity:1}#toast.ok{background:var(--ok)}#toast.bad{background:var(--bad)}
+@media (max-width:640px){main{padding:12px}.cols{grid-template-columns:1fr}.params{columns:1}}
+
+.login{max-width:420px;margin:40px auto}.logo.big .m{width:44px;height:44px;font-size:18px}.logo.big{color:var(--navy)}.logo.big small{color:var(--mut)}
+label.blk{display:block;margin-top:12px;font-size:13px}label.blk input{display:block;width:100%;margin-top:4px;padding:9px 10px;border:1px solid var(--line);border-radius:8px;font:inherit}
+.btn.wide{width:100%;justify-content:center}.btn.dis{opacity:.45;pointer-events:none}.lnk{background:none;border:0;color:var(--navy);text-decoration:underline;cursor:pointer;font:inherit;font-size:12px}
+#who{font-size:12px;opacity:.9}#who .rol{background:#e8b04a;color:var(--navy);padding:1px 7px;border-radius:9px;font-weight:700}
+.cl-head{display:flex;justify-content:space-between;align-items:center;gap:14px;flex-wrap:wrap}.cl-head .banner{margin:0}
+.steps{display:grid;grid-template-columns:1fr 1.4fr;gap:16px}.step h3{margin:0 0 4px}.step p{margin:0 0 10px}
+.banner.warn{background:var(--warnb);color:var(--warn)}.banner.ap{background:#e8eef4;color:var(--navy)}
+.reject{border:1px solid #f3c1bb;background:var(--badb);border-radius:10px;padding:10px 12px}.reject .rh{font-weight:700;color:var(--bad)}
+table.grid.sm th,table.grid.sm td{padding:5px 8px;font-size:12px}
+table.form td{padding:3px 4px}table.form input,table.form select{width:100%;border:1px solid transparent;background:transparent;padding:6px 6px;border-radius:6px;font:inherit;font-size:13px}
+table.form input:focus,table.form select:focus{outline:none;border-color:#e8b04a;background:#fffdf5}table.form input:hover{border-color:var(--line)}
+.ibad{border-color:var(--bad)!important;background:#fff1ef!important;color:var(--bad)}.iro{color:var(--mut)}
+.w4{min-width:56px}.w6{min-width:76px}.w8{min-width:104px}.w9{min-width:96px}.w12{min-width:130px}.w14{min-width:180px}
+.errlist{margin:8px 0 0;padding-left:18px;font-size:12.5px;color:var(--bad);columns:2}.between{justify-content:space-between}.sp{flex:1}
+.ups{display:grid;grid-template-columns:1fr 1fr;gap:14px}.upbox{border:1px dashed #b9c4cf;border-radius:10px;padding:14px;background:#fbfcfd}.upbox .ut{font-weight:700}
+.mapbox{border:1px solid #f0d9a8;background:var(--warnb);border-radius:8px;padding:10px}.mapbox select{max-width:190px}
+.kpi .kv.sm{font-size:20px}.pok2{background:#eef7e9;color:#4d7c2a}.pap{background:var(--navy);color:#fff}
+.bold{font-weight:700}.res b{font-size:13px}tr.tot td{font-weight:700;background:#eef1f4!important;border-top:2px solid var(--navy)}.b{font-weight:700}
+.ecard.snone{border-top-color:#c9d1d9}
+.pipe{list-style:none;margin:12px 0 0;padding:0}.pipe li{display:flex;gap:10px;padding:5px 0;font-size:13px;align-items:flex-start}
+.pipe .dot{width:20px;height:20px;border-radius:50%;border:2px solid #c9d1d9;display:grid;place-items:center;font-size:11px;font-weight:700;flex:none;color:#fff}
+.pipe li.done .dot{background:var(--ok);border-color:var(--ok)}.pipe li.wrn .dot{background:var(--bad);border-color:var(--bad)}
+.res{display:grid;grid-template-columns:repeat(5,1fr);gap:6px;margin-top:10px;background:#f6f8fa;border-radius:8px;padding:8px}.res div{display:flex;flex-direction:column;font-size:12.5px}
+@media (max-width:820px){.steps,.ups{grid-template-columns:1fr}.res{grid-template-columns:repeat(2,1fr)}.errlist{columns:1}}
+</style></head>
+<body>
+<header><div class="logo"><div class="m">SI</div><div><b>Smart-Input Dragon</b><small id="sub"></small></div></div><div class="sp"></div>
+<span id="who"></span><span id="per">Periodo 2026-10</span>
+<select id="selLang" aria-label="Idioma"><option value="es">Español</option><option value="en">English</option><option value="zh">中文</option></select>
+<button id="bSalir" class="hidden"></button></header>
+<nav id="nav" class="hidden"><button data-tab="tablero">Tablero de control</button><button data-tab="novedades">1. Novedades del cliente → Buk</button><button data-tab="validacion">2. Validación cruzada de netos</button></nav>
+<main id="main"></main><div id="toast"></div>
+<script>window.__CFG__ = {"periodo": "2026-10", "empresas": [{"id": "ALFA", "nombre": "Alfa Tech Perú S.A.C.", "ruc": "20612345671", "idioma": "zh", "maestro": [{"dni": "71234501", "ficha": "A-001", "nombre": "Lin Wei, Chen", "cargo": "Gerente General", "sueldo": 9800, "asigFam": 0, "regimen": "PROFUTURO"}, {"dni": "71234502", "ficha": "A-002", "nombre": "Rojas Paredes, Lucía", "cargo": "Asistente Contable", "sueldo": 4200, "asigFam": 123, "regimen": "INTEGRA"}, {"dni": "71234503", "ficha": "A-003", "nombre": "Huang, Mei Ling", "cargo": "Jefa Comercial", "sueldo": 12500, "asigFam": 0, "regimen": "PRIMA-M"}, {"dni": "71234504", "ficha": "A-004", "nombre": "Torres Vega, Diego", "cargo": "Almacenero", "sueldo": 3100, "asigFam": 123, "regimen": "ONP"}, {"dni": "71234505", "ficha": "A-005", "nombre": "Salazar Ruiz, Carmen", "cargo": "Analista de Compras", "sueldo": 5600, "asigFam": 0, "regimen": "HABITAT"}]}, {"id": "BETA", "nombre": "Beta Logistics Perú S.A.C.", "ruc": "20623456782", "idioma": "en", "maestro": [{"dni": "72345601", "ficha": "B-001", "nombre": "Mendoza Ríos, Jorge", "cargo": "Operations Manager", "sueldo": 7400, "asigFam": 0, "regimen": "INTEGRA"}, {"dni": "72345602", "ficha": "B-002", "nombre": "Castro León, Andrea", "cargo": "Customer Service", "sueldo": 3900, "asigFam": 123, "regimen": "PRIMA"}, {"dni": "72345603", "ficha": "B-003", "nombre": "Smith, Robert", "cargo": "Country Manager", "sueldo": 15000, "asigFam": 0, "regimen": "PROFUTURO-M"}, {"dni": "72345604", "ficha": "B-004", "nombre": "Quispe Huamán, Rosa", "cargo": "Warehouse Assistant", "sueldo": 2800, "asigFam": 123, "regimen": "HABITAT"}, {"dni": "72345605", "ficha": "B-005", "nombre": "Vargas Soto, Miguel", "cargo": "Driver", "sueldo": 3300, "asigFam": 0, "regimen": "ONP"}]}, {"id": "GAMMA", "nombre": "Gamma Foods Perú S.A.C.", "ruc": "20634567893", "idioma": "es", "maestro": [{"dni": "73456701", "ficha": "G-001", "nombre": "Fernández Díaz, Paola", "cargo": "Gerente de Planta", "sueldo": 11000, "asigFam": 0, "regimen": "INTEGRA"}, {"dni": "73456702", "ficha": "G-002", "nombre": "Ramos Cruz, Luis", "cargo": "Operario", "sueldo": 2600, "asigFam": 123, "regimen": "ONP"}, {"dni": "73456703", "ficha": "G-003", "nombre": "Gutiérrez Alva, Sofía", "cargo": "Supervisora de Calidad", "sueldo": 4500, "asigFam": 0, "regimen": "PRIMA"}, {"dni": "73456704", "ficha": "G-004", "nombre": "Wong, Kevin", "cargo": "Jefe de Exportaciones", "sueldo": 8200, "asigFam": 0, "regimen": "HABITAT-M"}, {"dni": "73456705", "ficha": "G-005", "nombre": "Chávez Lazo, Daniela", "cargo": "Asistente de RR. HH.", "sueldo": 3700, "asigFam": 123, "regimen": "PROFUTURO"}]}]};</script>
+<script>/* Smart-Input Dragon v2 — prototipo con roles Cliente / Administrador */
+const CFG = window.__CFG__;
+const PER = CFG.periodo;                       // "2026-10"
+const [PY, PM] = PER.split('-').map(Number);
+const MES01 = PER + '-01';
+const RMV = 1230, TOL = 0.01;
+const r2 = x => Math.round((Number(x) + Number.EPSILON) * 100) / 100;
+const EMPS = CFG.empresas;
+const EMP = Object.fromEntries(EMPS.map(e => [e.id, e]));
+
+/* Cuentas de demostración (prototipo: no es un control de acceso real) */
+const ACCOUNTS = [
+  { u: 'admin', p: 'Dragon2026', rol: 'admin', nombre: 'Analista de planillas DBP' },
+  { u: 'alfa', p: 'Alfa2026', rol: 'cliente', emp: 'ALFA', nombre: 'Alfa Tech Perú S.A.C.' },
+  { u: 'beta', p: 'Beta2026', rol: 'cliente', emp: 'BETA', nombre: 'Beta Logistics Perú S.A.C.' },
+  { u: 'gamma', p: 'Gamma2026', rol: 'cliente', emp: 'GAMMA', nombre: 'Gamma Foods Perú S.A.C.' }
+];
+
+/* Códigos de ítem Buk para Comprobantes Históricos */
+const ITEMS = [
+  { k: 'h25', code: 'horas_extras_25', desc: 'Horas extras 25 %' },
+  { k: 'h35', code: 'horas_extras_35', desc: 'Horas extras 35 %' },
+  { k: 'bono', code: 'bono_desempeno', desc: 'Bono por desempeño' },
+  { k: 'mov', code: 'movilidad_condicion_trabajo', desc: 'Movilidad (condición de trabajo)' },
+  { k: 'falt', code: 'descuento_inasistencia', desc: 'Descuento por inasistencias' }
+];
+
+/* ---------------- textos (portal del cliente en 3 idiomas) ---------------- */
+const TX = {
+  es: { sub: 'Ecosistema de automatización payroll', login: 'Iniciar sesión', usuario: 'Usuario', clave: 'Contraseña', entrar: 'Entrar', salir: 'Salir', badLogin: 'Usuario o contraseña incorrectos.',
+    periodo: 'Periodo', paso1: '1. Descarga el formato', paso1d: 'Plantilla estandarizada con tus trabajadores, en el idioma elegido.', bajar: 'Descargar formato (.xlsx)',
+    paso2: '2. Registra tus novedades', paso2d: 'Completa asistencias, horas extras, bonos y movimientos de personal. Puedes escribir aquí o cargar el formato lleno.', agregarAlta: '+ Agregar alta',
+    paso3: '3. Carga tus novedades', paso3d: 'Sube el formato completado. Si falta un dato obligatorio o una fecha tiene formato incorrecto, el archivo se rechaza.', subir: 'Subir formato completado',
+    enviar: 'Enviar novedades', enviado: 'Novedades enviadas', pendiente: 'Aún no has enviado las novedades de este periodo.', bloqueado: 'La emisión de este periodo ya fue autorizada. Las novedades están cerradas.',
+    rechazado: 'Archivo rechazado', rechazadoD: 'Corrige estos puntos en tu archivo y vuelve a subirlo. No se guardó nada.', aceptado: 'Archivo validado. Revisa la tabla y pulsa «Enviar novedades».',
+    fila: 'Fila', campo: 'Campo', problema: 'Problema', errores: 'errores', listo: 'Todo conforme', quitar: 'Quitar',
+    c: ['N.° documento', 'Ficha', 'Apellidos y nombres', 'Días laborados', 'Faltas (días)', 'HE 25 % (h)', 'HE 35 % (h)', 'Bono (S/)', 'Movilidad (S/)', 'Movimiento', 'Fecha (dd/mm/aaaa)', 'Sueldo (altas)', 'Observaciones'],
+    movs: ['', 'Alta', 'Baja'], porVersion: 'versión', enviadoPor: 'por',
+    e: { req: 'Dato obligatorio', dni: 'El DNI debe tener 8 dígitos (CE: 9 a 12)', noMaestro: 'No figura en tu planilla. Si es un ingreso, marca «Alta»', yaExiste: 'Ya figura en la planilla: no puede ser alta', ficha: 'La ficha no corresponde al documento',
+      dias: 'Entero entre 0 y 30', faltas: 'Entero entre 0 y 30', suma: 'Días laborados + faltas supera 30', num: 'Número mayor o igual a 0', he: 'Máximo 100 horas',
+      fecha: 'Formato de fecha incorrecto: usa dd/mm/aaaa', fechaPer: 'La fecha debe estar en el periodo ' + PER, fechaSin: 'Hay fecha pero no indicaste Alta o Baja', fechaReq: 'Indica la fecha del movimiento',
+      sueldo: 'Sueldo obligatorio y no menor a la RMV (S/ 1,230)', diasBaja: 'Los días laborados superan la fecha de cese', dup: 'Documento repetido', falta: 'Falta este trabajador en el archivo', cols: 'Faltan columnas obligatorias: ', vacio: 'El archivo no tiene filas', mov: 'Usa Alta o Baja' } },
+  en: { sub: 'Payroll automation ecosystem', login: 'Sign in', usuario: 'User', clave: 'Password', entrar: 'Sign in', salir: 'Sign out', badLogin: 'Wrong user or password.',
+    periodo: 'Period', paso1: '1. Download the template', paso1d: 'Standard template with your employees, in the language you choose.', bajar: 'Download template (.xlsx)',
+    paso2: '2. Enter your payroll changes', paso2d: 'Fill in attendance, overtime, bonuses and hires/terminations. Type here or upload the completed template.', agregarAlta: '+ Add hire',
+    paso3: '3. Upload your changes', paso3d: 'Upload the completed template. If a required field is missing or a date has the wrong format, the file is rejected.', subir: 'Upload completed template',
+    enviar: 'Submit changes', enviado: 'Changes submitted', pendiente: 'You have not submitted this period’s changes yet.', bloqueado: 'Payslips for this period are already approved. Changes are closed.',
+    rechazado: 'File rejected', rechazadoD: 'Fix these points in your file and upload it again. Nothing was saved.', aceptado: 'File validated. Check the table and click “Submit changes”.',
+    fila: 'Row', campo: 'Field', problema: 'Issue', errores: 'errors', listo: 'All good', quitar: 'Remove',
+    c: ['Document no.', 'Code', 'Full name', 'Days worked', 'Absences (days)', 'OT 25 % (h)', 'OT 35 % (h)', 'Bonus (S/)', 'Transport (S/)', 'Movement', 'Date (dd/mm/yyyy)', 'Salary (hires)', 'Comments'],
+    movs: ['', 'Hire', 'Termination'], porVersion: 'version', enviadoPor: 'by',
+    e: { req: 'Required field', dni: 'DNI must have 8 digits (CE: 9 to 12)', noMaestro: 'Not on your payroll. If it is a new employee, choose “Hire”', yaExiste: 'Already on payroll: cannot be a hire', ficha: 'Code does not match the document',
+      dias: 'Whole number from 0 to 30', faltas: 'Whole number from 0 to 30', suma: 'Days worked + absences exceeds 30', num: 'Number ≥ 0', he: 'Max 100 hours',
+      fecha: 'Wrong date format: use dd/mm/yyyy', fechaPer: 'Date must be within period ' + PER, fechaSin: 'There is a date but no Hire/Termination', fechaReq: 'Enter the movement date',
+      sueldo: 'Salary required and not below minimum wage (S/ 1,230)', diasBaja: 'Days worked exceed the termination date', dup: 'Duplicated document', falta: 'This employee is missing from the file', cols: 'Missing required columns: ', vacio: 'The file has no rows', mov: 'Use Hire or Termination' } },
+  zh: { sub: '薪资自动化系统', login: '登录', usuario: '用户名', clave: '密码', entrar: '登录', salir: '退出', badLogin: '用户名或密码错误。',
+    periodo: '期间', paso1: '1. 下载模板', paso1d: '标准化模板，已包含贵公司员工，语言可选。', bajar: '下载模板 (.xlsx)',
+    paso2: '2. 填写薪资变动', paso2d: '填写出勤、加班、奖金及入职/离职。可在此直接填写，或上传填好的模板。', agregarAlta: '+ 新增入职',
+    paso3: '3. 上传变动', paso3d: '上传填好的模板。如缺少必填项或日期格式错误，文件将被拒绝。', subir: '上传已填模板',
+    enviar: '提交变动', enviado: '变动已提交', pendiente: '本期变动尚未提交。', bloqueado: '本期工资单已批准发放，变动已关闭。',
+    rechazado: '文件被拒绝', rechazadoD: '请修改以下问题后重新上传。未保存任何内容。', aceptado: '文件验证通过。请核对表格并点击“提交变动”。',
+    fila: '行', campo: '字段', problema: '问题', errores: '个错误', listo: '全部正确', quitar: '删除',
+    c: ['证件号码', '员工编号', '姓名', '出勤天数', '缺勤（天）', '加班25%（小时）', '加班35%（小时）', '奖金（S/）', '交通补贴（S/）', '人事变动', '日期（日/月/年）', '月薪（入职）', '备注'],
+    movs: ['', '入职', '离职'], porVersion: '版本', enviadoPor: '提交人',
+    e: { req: '必填项', dni: 'DNI须为8位数字（CE为9–12位）', noMaestro: '不在贵公司员工名单中；如为新员工请选择“入职”', yaExiste: '已在名单中，不能登记入职', ficha: '员工编号与证件不符',
+      dias: '0至30的整数', faltas: '0至30的整数', suma: '出勤天数+缺勤超过30', num: '须为≥0的数字', he: '最多100小时',
+      fecha: '日期格式错误：请用 日/月/年', fechaPer: '日期须在 ' + PER + ' 期间内', fechaSin: '填写了日期但未选择入职/离职', fechaReq: '请填写变动日期',
+      sueldo: '月薪必填且不低于最低工资（S/ 1,230）', diasBaja: '出勤天数超过离职日期', dup: '证件重复', falta: '文件中缺少该员工', cols: '缺少必填列：', vacio: '文件没有数据行', mov: '请填写入职或离职' } }
+};
+let lang = 'es';
+const T = () => TX[lang];
+const FIELDS = ['dni', 'ficha', 'nombre', 'dias', 'faltas', 'he25', 'he35', 'bono', 'mov', 'movimiento', 'fecha', 'sueldo', 'obs'];
+
+/* ---------------- utilidades ---------------- */
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+const fmt = v => (v === undefined || v === null || v === '') ? '—' : Number(v).toLocaleString('es-PE', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const norm = s => String(s ?? '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^a-z0-9一-鿿]/g, '');
+const nowTxt = () => new Date().toLocaleString('es-PE', { dateStyle: 'short', timeStyle: 'short' });
+function toast(msg, kind = '') { const el = $('#toast'); el.textContent = msg; el.className = 'show ' + kind; clearTimeout(el._t); el._t = setTimeout(() => el.className = '', 3500); }
+const num = v => { if (v === '' || v === null || v === undefined) return ''; if (typeof v === 'number') return v; const s = String(v).replace(/s\/|\s/gi, '').replace(/,/g, ''); return s === '' ? '' : (isNaN(Number(s)) ? NaN : Number(s)); };
+
+/* ---------------- almacenamiento compartido ---------------- */
+const Store = {
+  db: null, local: false, docs: {}, ready: false, listeners: [],
+  async init() {
+    try { if (window.claude && claude.use) this.db = await claude.use('db'); } catch (e) { this.db = null; }
+    if (!this.db) { this.local = true; this.loadLocal(); this.ready = true; render(); return; }
+    let pending = EMPS.length;
+    const timer = setTimeout(() => { if (!this.ready) { this.ready = true; $('#dbnote') && ($('#dbnote').textContent = 'Conectando con la base de datos…'); render(); } }, 10000);
+    EMPS.forEach(e => {
+      this.db.doc('cierres/' + PER + '-' + e.id).onSnapshot(snap => {
+        this.docs[e.id] = snap.exists ? JSON.parse(JSON.stringify(snap.data())) : {};
+        if (!snap.metadata.fromCache && pending > 0) { pending--; }
+        if (pending === 0 && !this.ready) { this.ready = true; clearTimeout(timer); }
+        render();
+      }, () => { this.ready = true; render(); });
+    });
+  },
+  loadLocal() { EMPS.forEach(e => { try { this.docs[e.id] = JSON.parse(localStorage.getItem('sid2:' + PER + ':' + e.id) || '{}'); } catch (x) { this.docs[e.id] = this.docs[e.id] || {}; } }); },
+  get(id) { return this.docs[id] || {}; },
+  async save(id, patch) {
+    const next = Object.assign({}, this.get(id), patch);
+    Object.keys(next).forEach(k => next[k] === undefined && delete next[k]);
+    this.docs[id] = next;
+    if (!this.local) {
+      try { await this.db.doc('cierres/' + PER + '-' + id).set(next); return true; }
+      catch (e) {
+        if (e && e.code === 'invalid_argument') { this.local = true; toast('Sin permiso de escritura compartida: se guarda solo en este navegador.', 'bad'); }
+        else { toast('No se pudo guardar (' + (e && e.code || e) + '). Intenta de nuevo.', 'bad'); return false; }
+      }
+    }
+    try { localStorage.setItem('sid2:' + PER + ':' + id, JSON.stringify(next)); } catch (x) { }
+    render(); return true;
+  }
+};
+
+/* ---------------- descargas ---------------- */
+let DL = null;
+(async () => { try { if (window.claude && claude.use) DL = await claude.use('downloads'); } catch (e) { DL = null; } })();
+async function descargar(filename, wb) {
+  const buf = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
+  if (DL) {
+    try { await DL.save({ filename, data: new Blob([buf]) }); toast('✓ ' + filename, 'ok'); return true; }
+    catch (e) { if (e && e.code !== 'declined') toast('Descarga no disponible: ' + (e.code || e), 'bad'); return false; }
+  }
+  try { const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([buf])); a.download = filename; document.body.appendChild(a); a.click(); a.remove(); return true; }
+  catch (e) { toast('Descarga no disponible en esta vista', 'bad'); return false; }
+}
+function sheet(aoa, widths) { const ws = XLSX.utils.aoa_to_sheet(aoa); if (widths) ws['!cols'] = widths.map(w => ({ wch: w })); return ws; }
+function textCol(ws, col, fromRow) { const R = XLSX.utils.decode_range(ws['!ref']); for (let r = fromRow; r <= R.e.r; r++) { const c = ws[XLSX.utils.encode_cell({ r, c: col })]; if (c && c.v !== '' && c.v !== undefined) { c.t = 's'; c.v = String(c.v); c.z = '@'; } } }
+
+/* ---------------- sesión ---------------- */
+let SES = null;
+try { const s = JSON.parse(sessionStorage.getItem('sid2:ses') || 'null'); if (s) SES = ACCOUNTS.find(a => a.u === s.u) || null; } catch (e) { }
+let UI = { tab: 'tablero', emp: 'ALFA', soloDif: true, grid: null, gridDirty: false, upload: null, map: {} };
+
+/* =====================================================================
+   PORTAL DEL CLIENTE
+   ===================================================================== */
+function filaBase(w) { return { dni: w.dni, ficha: w.ficha, nombre: w.nombre, dias: 30, faltas: 0, he25: 0, he35: 0, bono: 0, mov: 0, movimiento: '', fecha: '', sueldo: '', obs: '' }; }
+function gridInicial(empId) {
+  const d = Store.get(empId);
+  if (d.novedades && d.novedades.rows) return JSON.parse(JSON.stringify(d.novedades.rows));
+  return EMP[empId].maestro.map(filaBase);
+}
+function parseFecha(v) {
+  if (typeof v === 'number' && v > 20000 && v < 80000) { const d = XLSX.SSF.parse_date_code(v); return String(d.d).padStart(2, '0') + '/' + String(d.m).padStart(2, '0') + '/' + d.y; }
+  return String(v ?? '').trim();
+}
+const MOVALIAS = { alta: 'ALTA', hire: 'ALTA', ingreso: 'ALTA', 入职: 'ALTA', baja: 'BAJA', termination: 'BAJA', cese: 'BAJA', 离职: 'BAJA' };
+function validarNov(rows, empId, fileLevel) {
+  const e = T().e, maestro = EMP[empId].maestro, byDni = Object.fromEntries(maestro.map(w => [w.dni, w]));
+  const out = rows.map(() => []);
+  const add = (i, campo, msg) => out[i].push({ campo, msg });
+  const seen = {};
+  rows.forEach((r, i) => {
+    const dni = String(r.dni ?? '').trim();
+    if (!dni) add(i, 'dni', e.req); else if (!/^\d{8}$/.test(dni) && !/^[A-Z0-9]{9,12}$/i.test(dni)) add(i, 'dni', e.dni);
+    if (r.movimiento === '#INVALID') add(i, 'movimiento', e.mov);
+    const alta = r.movimiento === 'ALTA', baja = r.movimiento === 'BAJA';
+    if (dni && seen[dni]) add(i, 'dni', e.dup); seen[dni] = 1;
+    if (dni && !alta && !byDni[dni] && /^\d{8}$/.test(dni)) add(i, 'dni', e.noMaestro);
+    if (dni && alta && byDni[dni]) add(i, 'dni', e.yaExiste);
+    if (dni && !alta && byDni[dni] && r.ficha && String(r.ficha).trim() !== byDni[dni].ficha) add(i, 'ficha', e.ficha);
+    if (alta && !String(r.nombre || '').trim()) add(i, 'nombre', e.req);
+    const dias = num(r.dias), falt = num(r.faltas === '' ? 0 : r.faltas);
+    if (dias === '') add(i, 'dias', e.req); else if (!Number.isInteger(dias) || dias < 0 || dias > 30) add(i, 'dias', e.dias);
+    if (falt !== '' && (!Number.isInteger(falt) || falt < 0 || falt > 30)) add(i, 'faltas', e.faltas);
+    if (Number.isInteger(dias) && Number.isInteger(falt) && dias + falt > 30) add(i, 'faltas', e.suma);
+    ['he25', 'he35', 'bono', 'mov'].forEach(k => { const v = num(r[k]); if (v !== '' && (isNaN(v) || v < 0)) add(i, k, e.num); else if ((k === 'he25' || k === 'he35') && v > 100) add(i, k, e.he); });
+    const f = String(r.fecha || '').trim();
+    if (alta || baja) {
+      if (!f) add(i, 'fecha', e.fechaReq);
+      else {
+        const m = f.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+        const ok = m && (() => { const d = new Date(+m[3], +m[2] - 1, +m[1]); return d.getDate() === +m[1] && d.getMonth() === +m[2] - 1; })();
+        if (!ok) add(i, 'fecha', e.fecha);
+        else if (+m[3] !== PY || +m[2] !== PM) add(i, 'fecha', e.fechaPer);
+        else if (baja && Number.isInteger(dias) && dias > +m[1]) add(i, 'dias', e.diasBaja);
+      }
+    } else if (f) add(i, 'fecha', e.fechaSin);
+    if (alta) { const s = num(r.sueldo); if (s === '' || isNaN(s) || s < RMV) add(i, 'sueldo', e.sueldo); }
+  });
+  const global = [];
+  if (fileLevel) maestro.forEach(w => { if (!rows.some(r => String(r.dni).trim() === w.dni)) global.push({ fila: '—', campo: 'dni', msg: e.falta + ': ' + w.dni + ' ' + w.nombre }); });
+  else maestro.forEach(w => { if (!rows.some(r => String(r.dni).trim() === w.dni)) global.push({ fila: '—', campo: 'dni', msg: e.falta + ': ' + w.dni + ' ' + w.nombre }); });
+  return { porFila: out, global, total: out.reduce((s, x) => s + x.length, 0) + global.length };
+}
+/* encabezados del formato (aceptados en los 3 idiomas) */
+const NOVALIAS = {
+  dni: ['numerodedocumento', 'documentnumber', '证件号码', 'dni', 'documento', 'nrodocumento'],
+  ficha: ['codigodeficha', 'employeecode', '员工编号', 'ficha'],
+  nombre: ['apellidosynombres', 'fullname', '姓名', 'nombre', 'name'],
+  dias: ['diaslaborados', 'daysworked', '出勤天数'],
+  faltas: ['faltasdias', 'absencesdays', '缺勤天', 'faltas', 'absences'],
+  he25: ['horasextras25horas', 'overtime25hours', '加班25小时'],
+  he35: ['horasextras35horas', 'overtime35hours', '加班35小时'],
+  bono: ['bonos', 'bonuss', '奖金s', 'bono', 'bonus'],
+  mov: ['movilidads', 'transportallowances', '交通补贴s', 'movilidad'],
+  movimiento: ['movimientoaltabaja', 'movementhiretermination', '人事变动入职离职', 'movimiento', 'movement'],
+  fecha: ['fechademovimientoddmmaaaa', 'movementdateddmmyyyy', '变动日期日月年', 'fechademovimiento', 'movementdate'],
+  sueldo: ['sueldosoloaltas', 'salaryhiresonly', '月薪仅入职', 'sueldo', 'salary'],
+  obs: ['observaciones', 'comments', '备注']
+};
+const REQCOLS = ['dni', 'dias', 'faltas', 'he25', 'he35', 'movimiento', 'fecha'];
+function leerAOA(file, cb) {
+  const fr = new FileReader();
+  fr.onload = ev => { try { const wb = XLSX.read(new Uint8Array(ev.target.result), { type: 'array' }); const ws = wb.Sheets[wb.SheetNames[0]]; cb(null, XLSX.utils.sheet_to_json(ws, { header: 1, raw: true, defval: '' })); } catch (e) { cb(e); } };
+  fr.readAsArrayBuffer(file);
+}
+function onUploadNov(file) {
+  const empId = SES.emp, e = T().e;
+  leerAOA(file, (err, aoa) => {
+    if (err) { UI.upload = { ok: false, file: file.name, errs: [{ fila: '—', campo: '—', msg: String(err.message || err) }] }; return render(); }
+    let hi = -1, map = {};
+    for (let i = 0; i < Math.min(aoa.length, 15); i++) {
+      const m = {}; aoa[i].forEach((h, j) => { const n = norm(h); for (const [k, arr] of Object.entries(NOVALIAS)) if (m[k] === undefined && arr.includes(n)) m[k] = j; });
+      if (Object.keys(m).length >= 3) { hi = i; map = m; break; }
+    }
+    const faltan = REQCOLS.filter(k => map[k] === undefined);
+    if (hi < 0 || faltan.length) { UI.upload = { ok: false, file: file.name, errs: [{ fila: '—', campo: '—', msg: e.cols + (hi < 0 ? T().c.join(', ') : faltan.map(k => T().c[FIELDS.indexOf(k)]).join(', ')) }] }; return render(); }
+    const rows = aoa.slice(hi + 1).filter(r => r.some(v => String(v).trim() !== '')).map(r => {
+      const o = {}; FIELDS.forEach(k => { o[k] = map[k] !== undefined ? r[map[k]] : ''; });
+      o.dni = String(o.dni ?? '').trim(); if (/^\d{7}$/.test(o.dni)) o.dni = o.dni.padStart(8, '0');
+      o.ficha = String(o.ficha ?? '').trim(); o.fecha = parseFecha(o.fecha);
+      const mv = norm(o.movimiento); o.movimiento = mv ? (MOVALIAS[mv] || '#INVALID') : '';
+      ['dias', 'faltas', 'he25', 'he35', 'bono', 'mov', 'sueldo'].forEach(k => { const v = num(o[k]); o[k] = (k === 'faltas' || k === 'he25' || k === 'he35' || k === 'bono' || k === 'mov') && v === '' ? 0 : v; });
+      o.nombre = String(o.nombre ?? ''); o.obs = String(o.obs ?? '');
+      return o;
+    });
+    if (!rows.length) { UI.upload = { ok: false, file: file.name, errs: [{ fila: '—', campo: '—', msg: e.vacio }] }; return render(); }
+    const v = validarNov(rows, empId, true);
+    if (v.total) {
+      const errs = v.global.concat(...v.porFila.map((l, i) => l.map(x => ({ fila: hi + 2 + i, campo: T().c[FIELDS.indexOf(x.campo)], msg: x.msg }))));
+      UI.upload = { ok: false, file: file.name, errs }; return render();
+    }
+    UI.grid = rows; UI.gridDirty = true; UI.upload = { ok: true, file: file.name }; render();
+  });
+}
+function bajarFormato() {
+  const empId = SES.emp, e = EMP[empId], t = T();
+  const head = { es: ['Número de Documento', 'Código de Ficha', 'Apellidos y Nombres', 'Días laborados', 'Faltas (días)', 'Horas extras 25% (horas)', 'Horas extras 35% (horas)', 'Bono (S/)', 'Movilidad (S/)', 'Movimiento (Alta/Baja)', 'Fecha de movimiento (dd/mm/aaaa)', 'Sueldo (solo altas)', 'Observaciones'],
+    en: ['Document Number', 'Employee Code', 'Full Name', 'Days worked', 'Absences (days)', 'Overtime 25% (hours)', 'Overtime 35% (hours)', 'Bonus (S/)', 'Transport allowance (S/)', 'Movement (Hire/Termination)', 'Movement date (dd/mm/yyyy)', 'Salary (hires only)', 'Comments'],
+    zh: ['证件号码', '员工编号', '姓名', '出勤天数', '缺勤（天）', '加班25%（小时）', '加班35%（小时）', '奖金（S/）', '交通补贴（S/）', '人事变动（入职/离职）', '变动日期（日/月/年）', '月薪（仅入职）', '备注'] }[lang];
+  const rows = e.maestro.map(w => [w.dni, w.ficha, w.nombre, '', 0, 0, 0, 0, 0, '', '', '', '']);
+  const ws = sheet([head, ...rows], [16, 12, 30, 12, 12, 14, 14, 10, 14, 18, 20, 14, 26]); textCol(ws, 0, 1);
+  const ins = {
+    es: [['Instrucciones — ' + e.nombre + ' — periodo ' + PER], [], ['1. No cambies los encabezados. Una fila por trabajador.'], ['2. Obligatorios: N.° de documento y Días laborados (0 a 30). Faltas + días no pueden superar 30.'], ['3. Horas extras en horas; bono y movilidad en soles.'], ['4. Movimiento: escribe Alta (ingreso) o Baja (cese) y la fecha en formato dd/mm/aaaa dentro del periodo.'], ['5. Para un ingreso, agrega una fila con DNI, nombre, Alta, fecha y sueldo (no menor a S/ 1,230).'], ['6. Si falta un dato obligatorio o una fecha está mal escrita, el portal rechazará el archivo.']],
+    en: [['Instructions — ' + e.nombre + ' — period ' + PER], [], ['1. Do not change the headers. One row per employee.'], ['2. Required: Document number and Days worked (0 to 30). Absences + days cannot exceed 30.'], ['3. Overtime in hours; bonus and transport in soles.'], ['4. Movement: type Hire or Termination and the date as dd/mm/yyyy within the period.'], ['5. For a new hire, add a row with DNI, name, Hire, date and salary (not below S/ 1,230).'], ['6. If a required field is missing or a date is wrong, the portal will reject the file.']],
+    zh: [['填写说明 — ' + e.nombre + ' — 期间 ' + PER], [], ['1. 请勿修改表头，每位员工一行。'], ['2. 必填：证件号码和出勤天数（0–30）。缺勤+出勤不得超过30。'], ['3. 加班填小时数；奖金和交通补贴填金额（索尔）。'], ['4. 人事变动：填写“入职”或“离职”，日期格式为 日/月/年，且在本期内。'], ['5. 新员工入职：新增一行，填写DNI、姓名、入职、日期和月薪（不低于 S/ 1,230）。'], ['6. 如缺少必填项或日期格式错误，系统将拒绝上传。']] }[lang];
+  const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, { es: 'Novedades', en: 'Changes', zh: '变动' }[lang]); XLSX.utils.book_append_sheet(wb, sheet(ins, [100]), { es: 'Instrucciones', en: 'Instructions', zh: '说明' }[lang]);
+  descargar(`Formato_Novedades_${empId}_${PER}_${lang.toUpperCase()}.xlsx`, wb);
+}
+async function enviarNov() {
+  const empId = SES.emp; const v = validarNov(UI.grid, empId);
+  if (v.total) return toast(T().errores + ': ' + v.total, 'bad');
+  const prev = Store.get(empId).novedades;
+  const ok = await Store.save(empId, { novedades: { rows: UI.grid, fecha: nowTxt(), usuario: SES.u, idioma: lang, archivo: UI.upload && UI.upload.ok ? UI.upload.file : 'Formulario web', version: (prev ? prev.version : 0) + 1 }, comprobantes: undefined });
+  if (ok) { UI.gridDirty = false; UI.upload = null; toast('✓ ' + T().enviado, 'ok'); render(); }
+}
+function vCliente() {
+  const t = T(), e = EMP[SES.emp], d = Store.get(SES.emp), bloq = !!d.aprob;
+  if (!UI.grid) UI.grid = gridInicial(SES.emp);
+  const v = validarNov(UI.grid, SES.emp);
+  const nov = d.novedades;
+  const estado = bloq ? `<div class="banner ap">🔒 ${t.bloqueado}</div>` : nov ? `<div class="banner ok">✓ ${t.enviado}: ${esc(nov.fecha)} · ${t.enviadoPor} ${esc(nov.usuario)} · ${t.porVersion} ${nov.version}${UI.gridDirty ? ' — <b>' + (lang === 'en' ? 'unsent edits' : lang === 'zh' ? '有未提交的修改' : 'tienes cambios sin enviar') + '</b>' : ''}</div>` : `<div class="banner warn">${t.pendiente}</div>`;
+  const cell = (r, i, k, type = 'text', w = '') => {
+    const bad = v.porFila[i].some(x => x.campo === k);
+    if (k === 'movimiento') return `<td><select data-i="${i}" data-k="${k}" ${bloq ? 'disabled' : ''} class="${bad ? 'ibad' : ''}">${['', 'ALTA', 'BAJA'].map((m, j) => `<option value="${m}" ${r.movimiento === m ? 'selected' : ''}>${t.movs[j] || '—'}</option>`).join('')}</select></td>`;
+    const ro = bloq || ((k === 'dni' || k === 'ficha' || k === 'nombre') && r.movimiento !== 'ALTA' && EMP[SES.emp].maestro.some(w => w.dni === r.dni)) || (k === 'sueldo' && r.movimiento !== 'ALTA');
+    return `<td><input data-i="${i}" data-k="${k}" value="${esc(r[k])}" ${ro ? 'readonly tabindex="-1"' : ''} class="${bad ? 'ibad' : ''} ${ro ? 'iro' : ''} ${w}" ${type === 'num' ? 'inputmode="decimal"' : ''}></td>`;
+  };
+  const errLines = v.global.map(x => `<li>${esc(x.msg)}</li>`).join('') + v.porFila.map((l, i) => l.map(x => `<li><b>${t.fila} ${i + 1}</b> · ${esc(t.c[FIELDS.indexOf(x.campo)])}: ${esc(x.msg)}</li>`).join('')).join('');
+  return `
+  <div class="cl-head card"><div><div class="en">${esc(e.nombre)}</div><div class="small muted">RUC ${e.ruc} · ${t.periodo} ${PER}</div></div>${estado}</div>
+  <div class="steps">
+    <section class="card step"><h3>${t.paso1}</h3><p class="small muted">${t.paso1d}</p><button class="btn" id="bFormato">⬇ ${t.bajar}</button></section>
+    <section class="card step"><h3>${t.paso3}</h3><p class="small muted">${t.paso3d}</p>
+      <label class="btn primary ${bloq ? 'dis' : ''}"><input type="file" id="fNov" accept=".xlsx,.xls" hidden ${bloq ? 'disabled' : ''}>⬆ ${t.subir}</label>
+      ${UI.upload ? (UI.upload.ok ? `<div class="banner ok mt">✓ ${esc(UI.upload.file)} — ${t.aceptado}</div>` : `<div class="reject mt"><div class="rh">✕ ${t.rechazado}: ${esc(UI.upload.file)}</div><div class="small">${t.rechazadoD}</div><table class="grid sm mt"><thead><tr><th>${t.fila}</th><th>${t.campo}</th><th>${t.problema}</th></tr></thead><tbody>${UI.upload.errs.slice(0, 40).map(x => `<tr><td>${esc(x.fila)}</td><td>${esc(x.campo)}</td><td>${esc(x.msg)}</td></tr>`).join('')}</tbody></table></div>`) : ''}
+    </section>
+  </div>
+  <section class="card"><div class="row wrap gap between"><div><h3>${t.paso2}</h3><p class="small muted">${t.paso2d}</p></div>
+    <div class="row gap">${bloq ? '' : `<button class="btn" id="bAlta">${t.agregarAlta}</button>`}<button class="btn go" id="bEnviar" ${bloq || v.total ? 'disabled' : ''}>✓ ${t.enviar}</button></div></div>
+    <div class="tablewrap mt"><table class="grid form"><thead><tr>${t.c.map(h => `<th>${esc(h)}</th>`).join('')}<th></th></tr></thead><tbody>
+    ${UI.grid.map((r, i) => `<tr class="${v.porFila[i].length ? 'rbad' : ''}">${cell(r, i, 'dni', 'text', 'w9')}${cell(r, i, 'ficha', 'text', 'w6')}${cell(r, i, 'nombre', 'text', 'w14')}${cell(r, i, 'dias', 'num', 'w4')}${cell(r, i, 'faltas', 'num', 'w4')}${cell(r, i, 'he25', 'num', 'w4')}${cell(r, i, 'he35', 'num', 'w4')}${cell(r, i, 'bono', 'num', 'w6')}${cell(r, i, 'mov', 'num', 'w6')}${cell(r, i, 'movimiento')}${cell(r, i, 'fecha', 'text', 'w8')}${cell(r, i, 'sueldo', 'num', 'w6')}${cell(r, i, 'obs', 'text', 'w12')}
+      <td>${!bloq && !EMP[SES.emp].maestro.some(w => w.dni === r.dni && r.movimiento !== 'ALTA') ? `<button class="lnk" data-del="${i}">${t.quitar}</button>` : ''}</td></tr>`).join('')}
+    </tbody></table></div>
+    <div class="mt">${v.total ? `<div class="banner bad">${v.total} ${t.errores}</div><ul class="errlist">${errLines}</ul>` : `<div class="banner ok">✓ ${t.listo}</div>`}</div>
+  </section>`;
+}
+
+/* =====================================================================
+   ADMINISTRADOR — novedades → comprobantes históricos
+   ===================================================================== */
+function montos(r, empId) {
+  const w = EMP[empId].maestro.find(x => x.dni === r.dni);
+  const sueldo = w ? w.sueldo : Number(r.sueldo) || 0, asig = w ? w.asigFam : 0;
+  const vh = (sueldo + asig) / 240;
+  return { h25: r2(vh * 1.25 * (Number(r.he25) || 0)), h35: r2(vh * 1.35 * (Number(r.he35) || 0)), bono: r2(Number(r.bono) || 0), mov: r2(Number(r.mov) || 0), falt: r2(sueldo / 30 * (Number(r.faltas) || 0)), ficha: w ? w.ficha : '' };
+}
+function comprobantes(empId) {
+  const nov = Store.get(empId).novedades; if (!nov) return [];
+  const out = [];
+  nov.rows.filter(r => r.movimiento !== 'ALTA').forEach(r => {
+    const m = montos(r, empId);
+    ITEMS.forEach(it => { if (m[it.k] > 0) out.push([String(r.dni), m.ficha, MES01, it.code, m[it.k], it.desc]); });
+  });
+  return out;
+}
+async function bajarComprobantes(empId) {
+  const rows = comprobantes(empId);
+  const ws = sheet([['Número de Documento', 'Código de Ficha', 'Mes', 'Código Ítem', 'Monto', 'Descripción'], ...rows], [20, 16, 12, 32, 12, 32]); textCol(ws, 0, 1);
+  const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, 'Lineas');
+  if (await descargar(`Comprobantes_Historicos_${empId}_${PER}.xlsx`, wb)) Store.save(empId, { comprobantes: { fecha: nowTxt(), lineas: rows.length, version: Store.get(empId).novedades.version } });
+}
+function bajarNovCliente(empId) {
+  const nov = Store.get(empId).novedades; if (!nov) return;
+  const aoa = [['Número de Documento', 'Código de Ficha', 'Apellidos y Nombres', 'Días laborados', 'Faltas (días)', 'HE 25% (horas)', 'HE 35% (horas)', 'Bono (S/)', 'Movilidad (S/)', 'Movimiento', 'Fecha movimiento', 'Sueldo (altas)', 'Observaciones', 'HE 25% (S/)', 'HE 35% (S/)', 'Desc. inasistencias (S/)']];
+  nov.rows.forEach(r => { const m = montos(r, empId); aoa.push([r.dni, r.ficha || m.ficha, r.nombre, r.dias, r.faltas, r.he25, r.he35, r.bono, r.mov, r.movimiento, r.fecha, r.sueldo, r.obs, m.h25, m.h35, m.falt]); });
+  const ws = sheet(aoa, [16, 10, 28, 10, 10, 10, 10, 10, 10, 10, 14, 10, 22, 12, 12, 14]); textCol(ws, 0, 1);
+  const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, 'Novedades');
+  const movs = nov.rows.filter(r => r.movimiento);
+  if (movs.length) XLSX.utils.book_append_sheet(wb, sheet([['Tipo', 'Número de Documento', 'Apellidos y Nombres', 'Fecha', 'Sueldo', 'Observaciones'], ...movs.map(r => [r.movimiento, String(r.dni), r.nombre, r.fecha, r.sueldo, r.obs])], [8, 16, 28, 12, 10, 30]), 'Altas y bajas');
+  descargar(`Novedades_Cliente_${empId}_${PER}_v${nov.version}.xlsx`, wb);
+}
+function vNovedades() {
+  const id = UI.emp, d = Store.get(id), nov = d.novedades;
+  let body;
+  if (!nov) body = `<div class="banner warn mt">El cliente aún no envía sus novedades de ${PER}.</div>`;
+  else {
+    const movs = nov.rows.filter(r => r.movimiento);
+    const comp = comprobantes(id);
+    body = `<div class="filemeta mt"><span>📨 Enviado: <b>${esc(nov.fecha)}</b></span><span>Usuario: ${esc(nov.usuario)}</span><span>Origen: ${esc(nov.archivo)}</span><span>Idioma: ${{ es: 'Español', en: 'English', zh: '中文' }[nov.idioma]}</span><span>Versión ${nov.version}</span></div>
+      <div class="row wrap gap mt"><button class="btn" id="bNovCli">⬇ Novedades del cliente (.xlsx)</button><button class="btn primary" id="bComp">⬇ Comprobantes Históricos para Buk (${comp.length} líneas)</button>
+      ${d.comprobantes ? `<span class="tok small">✓ Descargado ${esc(d.comprobantes.fecha)}${d.comprobantes.version !== nov.version ? ' · <b class="tbad">el cliente reenvió: vuelve a descargar</b>' : ''}</span>` : ''}</div>
+      ${movs.length ? `<div class="banner warn mt">Movimientos de personal: ${movs.map(r => `<b>${r.movimiento}</b> ${esc(r.nombre)} (${esc(r.dni)}) ${esc(r.fecha)}`).join(' · ')} — regístralos en Buk antes de procesar. Están en la hoja «Altas y bajas».</div>` : ''}
+      <div class="tablewrap mt"><table class="grid"><thead><tr><th>Documento</th><th>Ficha</th><th>Trabajador</th><th class="num">Días</th><th class="num">Faltas</th><th class="num">HE 25 % (h → S/)</th><th class="num">HE 35 % (h → S/)</th><th class="num">Bono</th><th class="num">Movilidad</th><th class="num">Desc. faltas</th><th>Movimiento</th></tr></thead><tbody>
+      ${nov.rows.map(r => { const m = montos(r, id); return `<tr><td class="mono">${esc(r.dni)}</td><td class="mono">${esc(r.ficha || m.ficha || '—')}</td><td>${esc(r.nombre)}</td><td class="num">${r.dias}</td><td class="num">${r.faltas || 0}</td><td class="num mono">${r.he25 || 0} → ${fmt(m.h25)}</td><td class="num mono">${r.he35 || 0} → ${fmt(m.h35)}</td><td class="num mono">${fmt(m.bono)}</td><td class="num mono">${fmt(m.mov)}</td><td class="num mono">${fmt(m.falt)}</td><td>${r.movimiento ? `<span class="pill ${r.movimiento === 'ALTA' ? 'pok' : 'pbad'}">${r.movimiento} ${esc(r.fecha)}</span>` : '—'}</td></tr>`; }).join('')}
+      </tbody></table></div>
+      <details class="mt small"><summary>Códigos de ítem usados en Comprobantes Históricos</summary><table class="grid sm mt"><thead><tr><th>Código Ítem</th><th>Descripción</th><th>Cálculo</th></tr></thead><tbody>
+      <tr><td class="mono">horas_extras_25</td><td>Horas extras 25 %</td><td>(sueldo + asig. familiar) / 240 × 1.25 × horas</td></tr><tr><td class="mono">horas_extras_35</td><td>Horas extras 35 %</td><td>(sueldo + asig. familiar) / 240 × 1.35 × horas</td></tr>
+      <tr><td class="mono">bono_desempeno</td><td>Bono por desempeño</td><td>monto informado</td></tr><tr><td class="mono">movilidad_condicion_trabajo</td><td>Movilidad</td><td>monto informado</td></tr><tr><td class="mono">descuento_inasistencia</td><td>Descuento por inasistencias</td><td>sueldo / 30 × faltas</td></tr></tbody></table>
+      <p class="muted">Las altas no van en Comprobantes Históricos hasta que tengan ficha en Buk. Verifica los códigos con la configuración de ítems de cada empresa en Buk.</p></details>`;
+  }
+  return `<section class="card"><div class="row wrap gap">${selEmp()}<span class="hint">Paso 1 del analista: descarga las novedades y el archivo de Comprobantes Históricos para cargarlo y procesarlo en Buk.</span></div>${body}</section>`;
+}
+
+/* =====================================================================
+   ADMINISTRADOR — motor de validación cruzada de netos (Buk ↔ PLAME R01)
+   ===================================================================== */
+const REPALIAS = {
+  doc: ['numerodedocumento', 'numerodoc', 'nrodocumento', 'nrodoc', 'ndoc', 'nodoc', 'dni', 'documento', 'numdoc', 'nrodedocumento', 'documentnumber', 'docidentidad', 'numerodocumento'],
+  nombre: ['apellidosynombres', 'apellidosnombres', 'nombre', 'nombres', 'trabajador', 'nombrecompleto', 'colaborador', 'fullname'],
+  ing: ['totalingresos', 'totaldeingresos', 'ingresos', 'totalremuneraciones', 'totalingreso', 'totalhaberes', 'haberes'],
+  desc: ['totaldescuentos', 'totaldedescuentos', 'descuentos', 'totaldescuento', 'totalretenciones', 'totaldeducciones'],
+  neto: ['liquidoapagar', 'liquidopagar', 'liquido', 'netoapagar', 'netopagar', 'neto', 'totalneto', 'montoapagar', 'totalapagar', 'netopagado', 'netoarecibir', 'netpay']
+};
+function detectar(aoa) {
+  for (let i = 0; i < Math.min(aoa.length, 40); i++) {
+    const m = {}; aoa[i].forEach((h, j) => { const n = norm(h); for (const [k, arr] of Object.entries(REPALIAS)) if (m[k] === undefined && arr.includes(n)) m[k] = j; });
+    if (m.doc !== undefined && (m.neto !== undefined || (m.ing !== undefined && m.desc !== undefined))) return { hi: i, m };
+  }
+  return null;
+}
+function dniDe(v) { let s = String(v ?? '').replace(/\D/g, ''); if (s.length === 7) s = s.padStart(8, '0'); if (s.length > 8 && s.length <= 10) s = s.slice(-8); return /^\d{8}$/.test(s) ? s : (String(v ?? '').trim().length >= 9 && /^[A-Z0-9-]+$/i.test(String(v).trim()) ? String(v).trim() : null); }
+function extraer(aoa, hi, m) {
+  const rows = [];
+  aoa.slice(hi + 1).forEach(r => {
+    const dni = dniDe(r[m.doc]); if (!dni) return;
+    const ing = m.ing !== undefined ? num(r[m.ing]) : '', desc = m.desc !== undefined ? num(r[m.desc]) : '';
+    let neto = m.neto !== undefined ? num(r[m.neto]) : '';
+    if ((neto === '' || isNaN(neto)) && ing !== '' && desc !== '') neto = r2(ing - desc);
+    if (neto === '' || isNaN(neto)) return;
+    rows.push({ dni, nombre: m.nombre !== undefined ? String(r[m.nombre]).trim() : '', ing: ing === '' || isNaN(ing) ? null : r2(ing), desc: desc === '' || isNaN(desc) ? null : r2(desc), neto: r2(neto) });
+  });
+  return rows;
+}
+const TMP = {};   // aoa de archivos pendientes de mapeo manual
+function onUploadRep(file, src) {
+  const id = UI.emp;
+  leerAOA(file, (err, aoa) => {
+    if (err) return toast('No se pudo leer el archivo: ' + err.message, 'bad');
+    const det = detectar(aoa);
+    if (!det) { TMP[id + src] = { aoa, file: file.name }; UI.map[id + src] = { hi: 0 }; toast('No reconocí las columnas: indícalas manualmente.', 'bad'); return render(); }
+    guardarRep(id, src, file.name, aoa, det.hi, det.m, 'automática');
+  });
+}
+function guardarRep(id, src, file, aoa, hi, m, modo) {
+  const rows = extraer(aoa, hi, m);
+  if (!rows.length) return toast('El archivo no tiene filas de trabajadores con documento y neto.', 'bad');
+  const head = aoa[hi]; const cols = Object.fromEntries(Object.entries(m).map(([k, j]) => [k, String(head[j])]));
+  delete TMP[id + src]; delete UI.map[id + src];
+  Store.save(id, { [src]: { archivo: file, fecha: nowTxt(), cols, modo, rows }, aprob: undefined });
+  toast(`✓ ${file}: ${rows.length} trabajadores (columna neto: ${cols.neto || 'ingresos − descuentos'})`, 'ok');
+}
+function cruce(id) {
+  const d = Store.get(id); if (!d.buk || !d.plame) return null;
+  const B = Object.fromEntries(d.buk.rows.map(r => [r.dni, r])), Pm = Object.fromEntries(d.plame.rows.map(r => [r.dni, r]));
+  const dnis = [...new Set([...d.buk.rows.map(r => r.dni), ...d.plame.rows.map(r => r.dni)])];
+  const rows = dnis.map(dni => {
+    const b = B[dni], p = Pm[dni];
+    const nombre = (b && b.nombre) || (p && p.nombre) || '';
+    if (!b) return { dni, nombre, b: null, p: p.neto, d: null, est: 'FALTA_BUK', p0: p };
+    if (!p) return { dni, nombre, b: b.neto, p: null, d: null, est: 'FALTA_PLAME', b0: b };
+    const diff = r2(b.neto - p.neto), ad = Math.round(Math.abs(diff) * 100);
+    return { dni, nombre, b: b.neto, p: p.neto, d: diff, est: ad === 0 ? 'CUADRA' : ad <= 1 ? 'REDONDEO' : 'ANALIZAR',
+      di: b.ing !== null && p.ing !== null ? r2(b.ing - p.ing) : null, dd: b.desc !== null && p.desc !== null ? r2(b.desc - p.desc) : null };
+  }).sort((a, b) => ({ ANALIZAR: 0, FALTA_PLAME: 1, FALTA_BUK: 1, REDONDEO: 2, CUADRA: 3 }[a.est] - { ANALIZAR: 0, FALTA_PLAME: 1, FALTA_BUK: 1, REDONDEO: 2, CUADRA: 3 }[b.est]));
+  const c = k => rows.filter(r => r.est === k).length;
+  const tb = r2(d.buk.rows.reduce((s, r) => s + r.neto, 0)), tp = r2(d.plame.rows.reduce((s, r) => s + r.neto, 0));
+  const obs = c('ANALIZAR') + c('FALTA_BUK') + c('FALTA_PLAME');
+  return { rows, n: rows.length, cuadra: c('CUADRA'), redondeo: c('REDONDEO'), analizar: c('ANALIZAR'), falta: c('FALTA_BUK') + c('FALTA_PLAME'), obs, tb, tp, td: r2(tb - tp), ok100: obs === 0 };
+}
+const EST = { CUADRA: ['Cuadra (0.00)', 'pok'], REDONDEO: ['Cuadra (redondeo 0.01)', 'pok2'], ANALIZAR: ['Analizar', 'pbad'], FALTA_PLAME: ['Falta en PLAME', 'pbad'], FALTA_BUK: ['Falta en Buk', 'pbad'] };
+function mapUI(id, src) {
+  const t = TMP[id + src]; if (!t) return '';
+  const st = UI.map[id + src]; const hi = st.hi || 0; const head = t.aoa[hi] || [];
+  const opts = (k) => `<select data-mapk="${k}" data-src="${src}"><option value="">—</option>${head.map((h, j) => `<option value="${j}" ${st[k] == j ? 'selected' : ''}>${esc(XLSX.utils.encode_col(j))}: ${esc(String(h).slice(0, 30))}</option>`).join('')}</select>`;
+  return `<div class="mapbox mt"><div class="small"><b>Asigna las columnas de ${esc(t.file)}</b></div>
+    <div class="row wrap gap mt small"><label>Fila de encabezados <select data-maphi="${src}">${t.aoa.slice(0, 40).map((r, i) => `<option value="${i}" ${i === hi ? 'selected' : ''}>${i + 1}: ${esc(r.filter(x => x !== '').slice(0, 3).join(' | ').slice(0, 50))}</option>`).join('')}</select></label>
+    <label>Documento ${opts('doc')}</label><label>Nombre ${opts('nombre')}</label><label>Neto a pagar ${opts('neto')}</label><label>Total ingresos ${opts('ing')}</label><label>Total descuentos ${opts('desc')}</label>
+    <button class="btn go" data-mapok="${src}">Aplicar</button></div></div>`;
+}
+function vValidacion() {
+  const id = UI.emp, d = Store.get(id), X = cruce(id);
+  const box = (src, titulo, ayuda) => {
+    const f = d[src];
+    return `<div class="upbox"><div class="ut">${titulo}</div><div class="small muted">${ayuda}</div>
+      <label class="btn ${f ? '' : 'primary'} mt"><input type="file" data-rep="${src}" accept=".xlsx,.xls,.csv" hidden>⬆ ${f ? 'Reemplazar' : 'Cargar'} archivo</label>
+      ${f ? `<div class="small mt tok">✓ ${esc(f.archivo)} · ${f.rows.length} trabajadores · ${esc(f.fecha)}</div><div class="small muted">Columnas (${f.modo}): documento «${esc(f.cols.doc)}», neto «${esc(f.cols.neto || 'ingresos − descuentos')}»${f.cols.ing ? `, ingresos «${esc(f.cols.ing)}»` : ''}${f.cols.desc ? `, descuentos «${esc(f.cols.desc)}»` : ''}</div>` : ''}
+      ${mapUI(id, src)}</div>`;
+  };
+  let res = '';
+  if (X) {
+    const rows = UI.soloDif ? X.rows.filter(r => r.est !== 'CUADRA' && r.est !== 'REDONDEO') : X.rows;
+    res = `<div class="kpis mt">
+      <div class="kpi"><div class="kt">Trabajadores cruzados</div><div class="kv">${X.n}</div><div class="ks">Buk ${d.buk.rows.length} · PLAME ${d.plame.rows.length}</div></div>
+      <div class="kpi kok"><div class="kt">Cuadran</div><div class="kv">${X.cuadra + X.redondeo}</div><div class="ks">${X.cuadra} en 0.00 · ${X.redondeo} con 0.01</div></div>
+      <div class="kpi ${X.obs ? 'kbad' : 'kok'}"><div class="kt">Para analizar</div><div class="kv">${X.obs}</div><div class="ks">${X.analizar} con diferencia · ${X.falta} sin par</div></div>
+      <div class="kpi ${Math.abs(X.td) > TOL ? 'kbad' : 'kok'}"><div class="kt">Neto total Buk vs PLAME</div><div class="kv sm">${fmt(X.td)}</div><div class="ks">${fmt(X.tb)} vs ${fmt(X.tp)}</div></div></div>
+      <div class="row wrap gap mt"><label class="chk"><input type="checkbox" id="chkDif" ${UI.soloDif ? 'checked' : ''}> Mostrar solo lo que hay que analizar</label><span class="hint">Regla: 0.00 cuadra · 0.01 se tolera (redondeo) · más de 0.01 se analiza</span><span class="sp"></span>
+      <button class="btn" id="bRep">⬇ Reporte de validación (.xlsx)</button>
+      ${d.aprob ? `<span class="pill pap">Emisión autorizada ${esc(d.aprob.fecha)}</span>` : `<button class="btn ${X.ok100 ? 'go' : ''}" id="bAut" ${X.ok100 ? '' : 'disabled'} title="${X.ok100 ? '' : 'Se habilita cuando el 100 % de los netos cuadra'}">Autorizar emisión de boletas</button>`}</div>
+      ${rows.length ? `<div class="tablewrap mt"><table class="grid"><thead><tr><th>Documento</th><th>Trabajador</th><th class="num">Neto Buk</th><th class="num">Neto PLAME</th><th class="num">Diferencia</th><th class="num">Dif. ingresos</th><th class="num">Dif. descuentos</th><th>Resultado</th></tr></thead><tbody>
+      ${rows.map(r => `<tr class="${EST[r.est][1] === 'pbad' ? 'rbad' : ''}"><td class="mono">${esc(r.dni)}</td><td>${esc(r.nombre)}</td><td class="num mono">${fmt(r.b)}</td><td class="num mono">${fmt(r.p)}</td><td class="num mono ${EST[r.est][1] === 'pbad' ? 'tbad bold' : ''}">${r.d === null ? '—' : fmt(r.d)}</td><td class="num mono ${r.di ? 'tbad' : 'muted'}">${r.di === null || r.di === undefined ? '—' : fmt(r.di)}</td><td class="num mono ${r.dd ? 'tbad' : 'muted'}">${r.dd === null || r.dd === undefined ? '—' : fmt(r.dd)}</td><td><span class="pill ${EST[r.est][1]}">${EST[r.est][0]}</span></td></tr>`).join('')}
+      <tr class="tot"><td></td><td>TOTAL</td><td class="num mono">${fmt(X.tb)}</td><td class="num mono">${fmt(X.tp)}</td><td class="num mono">${fmt(X.td)}</td><td></td><td></td><td></td></tr></tbody></table></div>`
+      : `<div class="banner ok mt">✓ Validación cruzada conforme: los ${X.n} netos a pagar cuadran entre Buk y PLAME (diferencia 0.00 o 0.01).</div>`}`;
+  } else res = `<div class="banner warn mt">Carga los dos reportes para ejecutar el cruce de netos a pagar.</div>`;
+  return `<section class="card"><div class="row wrap gap">${selEmp()}<span class="hint">Paso 2 del analista: después de procesar en Buk y declarar en el PDT PLAME, carga los dos reportes.</span></div>
+    <div class="ups mt">${box('buk', 'Reporte de planilla de Buk (procesado)', 'Exporta el reporte de planilla del proceso del mes. Se usa la columna «Líquido a pagar» o «Neto a pagar».')}
+    ${box('plame', 'Reporte R01 del PDT PLAME', 'Exporta el R01 por trabajador. Se usa «Neto a pagar»; si no existe, ingresos − descuentos.')}</div>${res}</section>`;
+}
+function reporteValidacion(id) {
+  const d = Store.get(id), X = cruce(id), e = EMP[id];
+  const res = [['REPORTE DE VALIDACIÓN CRUZADA DE NETOS A PAGAR — SMART-INPUT DRAGON'], [], ['Empresa', e.nombre], ['RUC', e.ruc], ['Periodo', PER], ['Fecha de validación', nowTxt()], ['Analista', SES.nombre],
+    ['Reporte Buk', d.buk.archivo + ' (' + d.buk.fecha + ')'], ['Reporte PLAME R01', d.plame.archivo + ' (' + d.plame.fecha + ')'], ['Regla', '0.00 cuadra · 0.01 tolerado por redondeo · > 0.01 analizar'], [],
+    ['Trabajadores cruzados', X.n], ['Cuadran en 0.00', X.cuadra], ['Cuadran con 0.01', X.redondeo], ['Con diferencia > 0.01', X.analizar], ['Sin par (falta en Buk o PLAME)', X.falta],
+    ['Neto total Buk', X.tb], ['Neto total PLAME', X.tp], ['Diferencia total', X.td], [], ['RESULTADO', X.ok100 ? 'CONFORME: el 100 % de los netos cuadra' : 'CON DIFERENCIAS: revisar la hoja Diferencias'], ['Emisión', d.aprob ? 'Autorizada ' + d.aprob.fecha + ' por ' + d.aprob.usuario : 'Pendiente']];
+  const H = ['Número de Documento', 'Trabajador', 'Neto Buk', 'Neto PLAME', 'Diferencia', 'Dif. ingresos', 'Dif. descuentos', 'Resultado'];
+  const line = r => [r.dni, r.nombre, r.b ?? '', r.p ?? '', r.d ?? '', r.di ?? '', r.dd ?? '', EST[r.est][0]];
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, sheet(res, [32, 60]), 'Resumen');
+  const w1 = sheet([H, ...X.rows.filter(r => r.est !== 'CUADRA' && r.est !== 'REDONDEO').map(line)], [16, 30, 12, 12, 12, 12, 12, 22]); textCol(w1, 0, 1); XLSX.utils.book_append_sheet(wb, w1, 'Diferencias');
+  const w2 = sheet([H, ...X.rows.map(line), ['', 'TOTAL', X.tb, X.tp, X.td]], [16, 30, 12, 12, 12, 12, 12, 22]); textCol(w2, 0, 1); XLSX.utils.book_append_sheet(wb, w2, 'Detalle');
+  descargar(`Reporte_Validacion_Netos_${id}_${PER}.xlsx`, wb);
+}
+
+/* =====================================================================
+   ADMINISTRADOR — tablero de control
+   ===================================================================== */
+function etapa(id) {
+  const d = Store.get(id), X = cruce(id);
+  if (d.aprob) return ['Emisión autorizada', 'sap', 6];
+  if (X && X.ok100) return ['Listo para emitir', 'sok', 5];
+  if (X) return ['Con diferencias', 'sbad', 4];
+  if (d.buk || d.plame) return ['En validación', 'swarn', 3];
+  if (d.comprobantes) return ['Procesando en Buk', 'swarn', 2];
+  if (d.novedades) return ['Novedades recibidas', 'swarn', 1];
+  return ['Pendiente de novedades', 'snone', 0];
+}
+function vTablero() {
+  const tot = EMPS.map(e => ({ e, d: Store.get(e.id), X: cruce(e.id), st: etapa(e.id) }));
+  const k = (f) => tot.filter(f).length;
+  const cards = tot.map(({ e, d, X, st }) => {
+    const step = (ok, txt, sub, warn) => `<li class="${ok ? 'done' : warn ? 'wrn' : ''}"><span class="dot">${ok ? '✓' : warn ? '!' : ''}</span><div><div>${txt}</div>${sub ? `<div class="small muted">${sub}</div>` : ''}</div></li>`;
+    const reenv = d.comprobantes && d.novedades && d.comprobantes.version !== d.novedades.version;
+    const b = d.buk ? d.buk.rows : null;
+    const sum = (rows, k) => rows && rows.every(r => r[k] !== null) ? r2(rows.reduce((s, r) => s + r[k], 0)) : null;
+    return `<div class="ecard ${st[1]}"><div class="eh"><div><div class="en">${esc(e.nombre)}</div><div class="small muted">RUC ${e.ruc} · ${e.maestro.length} trabajadores · idioma del cliente: ${{ es: 'ES', en: 'EN', zh: '中文' }[e.idioma]}</div></div><span class="state">${st[0]}</span></div>
+      <ol class="pipe">
+        ${step(!!d.novedades, 'Novedades del cliente', d.novedades ? `v${d.novedades.version} · ${esc(d.novedades.fecha)} · ${d.novedades.rows.filter(r => r.movimiento).length} altas/bajas` : 'pendiente')}
+        ${step(!!d.comprobantes && !reenv, 'Comprobantes Históricos para Buk', d.comprobantes ? (reenv ? 'el cliente reenvió: descargar de nuevo' : `${d.comprobantes.lineas} líneas · ${esc(d.comprobantes.fecha)}`) : 'pendiente', reenv)}
+        ${step(!!d.buk, 'Reporte de planilla Buk', d.buk ? `${d.buk.rows.length} trabajadores · ${esc(d.buk.archivo)}` : 'pendiente')}
+        ${step(!!d.plame, 'Reporte R01 PLAME', d.plame ? `${d.plame.rows.length} trabajadores · ${esc(d.plame.archivo)}` : 'pendiente')}
+        ${step(X && X.ok100, 'Cruce de netos a pagar', X ? `${X.cuadra + X.redondeo}/${X.n} cuadran · ${X.obs} por analizar` : 'pendiente', X && !X.ok100)}
+        ${step(!!d.aprob, 'Emisión de boletas', d.aprob ? `autorizada ${esc(d.aprob.fecha)}` : X && X.ok100 ? 'lista para autorizar' : 'bloqueada hasta cuadrar al 100 %')}
+      </ol>
+      ${b ? `<div class="res"><div><span class="muted small">Ingresos</span><b>${fmt(sum(b, 'ing'))}</b></div><div><span class="muted small">Descuentos</span><b>${fmt(sum(b, 'desc'))}</b></div><div><span class="muted small">Neto Buk</span><b>${fmt(X ? X.tb : sum(b, 'neto'))}</b></div><div><span class="muted small">Neto PLAME</span><b>${X ? fmt(X.tp) : '—'}</b></div><div><span class="muted small">Diferencia</span><b class="${X && Math.abs(X.td) > TOL ? 'tbad' : 'tok'}">${X ? fmt(X.td) : '—'}</b></div></div>` : ''}
+      <div class="row wrap gap mt"><button class="btn" data-go="novedades" data-e="${e.id}">Novedades</button><button class="btn" data-go="validacion" data-e="${e.id}">Validación</button>
+      ${d.aprob ? `<button class="btn" data-reab="${e.id}">Reabrir</button>` : `<button class="btn ${X && X.ok100 ? 'go' : ''}" data-aut="${e.id}" ${X && X.ok100 ? '' : 'disabled'}>Autorizar emisión</button>`}</div></div>`;
+  }).join('');
+  return `<section class="card"><div class="kpis">
+      <div class="kpi"><div class="kt">Novedades recibidas</div><div class="kv">${k(x => x.d.novedades)}/${EMPS.length}</div><div class="ks">periodo ${PER}</div></div>
+      <div class="kpi"><div class="kt">Procesadas en Buk</div><div class="kv">${k(x => x.d.buk)}/${EMPS.length}</div><div class="ks">reporte de planilla cargado</div></div>
+      <div class="kpi ${tot.some(x => x.X && !x.X.ok100) ? 'kbad' : ''}"><div class="kt">Netos por analizar</div><div class="kv">${tot.reduce((s, x) => s + (x.X ? x.X.obs : 0), 0)}</div><div class="ks">${k(x => x.X)} empresas validadas</div></div>
+      <div class="kpi ${k(x => x.d.aprob) === EMPS.length ? 'kok' : ''}"><div class="kt">Emisión autorizada</div><div class="kv">${k(x => x.d.aprob)}/${EMPS.length}</div><div class="ks">solo con 100 % cuadrado</div></div></div>
+      <div class="row gap mt small muted">${Store.local ? '⚠ Modo local: los datos se guardan solo en este navegador.' : '● Datos compartidos: lo que envía el cliente aparece aquí en vivo.'}<span class="sp"></span><button class="lnk" id="bReset">Reiniciar cierre de prueba</button></div>
+      <div id="resetBox" class="hidden mt"><div class="banner bad">¿Borrar novedades, reportes y autorizaciones de las 3 empresas? <button class="btn" id="bResetOk">Sí, reiniciar</button> <button class="btn" id="bResetNo">Cancelar</button></div></div></section>
+    <div class="ecards">${cards}</div>`;
+}
+function selEmp() { return `<label>Empresa <select id="selEmp">${EMPS.map(e => `<option value="${e.id}" ${e.id === UI.emp ? 'selected' : ''}>${esc(e.nombre)}</option>`).join('')}</select></label>`; }
+
+/* =====================================================================
+   LOGIN Y RENDER
+   ===================================================================== */
+function vLogin() {
+  const t = T();
+  return `<div class="login card"><div class="logo big"><div class="m">SI</div><div><b>Smart-Input Dragon</b><small>${t.sub}</small></div></div>
+    <form id="fLogin" class="mt"><label class="blk">${t.usuario}<input id="lu" autocomplete="username" required></label><label class="blk">${t.clave}<input id="lp" type="password" autocomplete="current-password" required></label>
+    <div id="lerr" class="tbad small"></div><button class="btn primary wide mt">${t.entrar}</button></form>
+    <details class="mt small"><summary>${lang === 'en' ? 'Test accounts' : lang === 'zh' ? '测试账号' : 'Cuentas de prueba'}</summary><table class="grid sm mt"><thead><tr><th>Rol</th><th>Usuario</th><th>Contraseña</th></tr></thead><tbody>
+    ${ACCOUNTS.map(a => `<tr><td>${a.rol === 'admin' ? 'Administrador (planillero)' : 'Cliente · ' + esc(a.nombre)}</td><td class="mono">${a.u}</td><td class="mono">${a.p}</td></tr>`).join('')}</tbody></table>
+    <p class="muted">Acceso de demostración del prototipo; en producción se usaría autenticación real.</p></details></div>`;
+}
+function render() {
+  const ae = document.activeElement; const focusKey = ae && ae.dataset && ae.dataset.k ? [ae.dataset.i, ae.dataset.k, ae.selectionStart] : null;
+  document.documentElement.lang = lang;
+  $('#sub').textContent = T().sub;
+  $('#who').innerHTML = SES ? `${esc(SES.nombre)} · <span class="rol">${SES.rol === 'admin' ? 'Administrador' : 'Cliente'}</span>` : '';
+  $('#bSalir').textContent = T().salir; $('#bSalir').classList.toggle('hidden', !SES);
+  $('#selLang').classList.toggle('hidden', !!(SES && SES.rol === 'admin'));
+  const nav = $('#nav');
+  if (SES && SES.rol === 'admin') { nav.classList.remove('hidden'); nav.querySelectorAll('[data-tab]').forEach(b => b.classList.toggle('on', b.dataset.tab === UI.tab)); } else nav.classList.add('hidden');
+  let html;
+  if (!SES) html = vLogin();
+  else if (!Store.ready) html = `<div class="card muted" id="dbnote">Cargando datos…</div>`;
+  else if (SES.rol === 'cliente') html = vCliente();
+  else html = { tablero: vTablero, novedades: vNovedades, validacion: vValidacion }[UI.tab]();
+  $('#main').innerHTML = html; bind();
+  if (focusKey) { const el = document.querySelector(`[data-i="${focusKey[0]}"][data-k="${focusKey[1]}"]`); if (el) { el.focus(); try { el.setSelectionRange(focusKey[2], focusKey[2]); } catch (e) { } } }
+}
+function bind() {
+  const fl = $('#fLogin'); if (fl) fl.onsubmit = ev => {
+    ev.preventDefault(); const a = ACCOUNTS.find(x => x.u === $('#lu').value.trim().toLowerCase() && x.p === $('#lp').value);
+    if (!a) { $('#lerr').textContent = T().badLogin; return; }
+    SES = a; UI.grid = null; UI.upload = null; UI.tab = 'tablero'; if (a.emp) lang = EMP[a.emp].idioma; $('#selLang').value = lang;
+    try { sessionStorage.setItem('sid2:ses', JSON.stringify({ u: a.u })); } catch (e) { } render();
+  };
+  const se = $('#selEmp'); if (se) se.onchange = ev => { UI.emp = ev.target.value; render(); };
+  // cliente
+  const bf = $('#bFormato'); if (bf) bf.onclick = bajarFormato;
+  const fn = $('#fNov'); if (fn) fn.onchange = ev => { if (ev.target.files[0]) onUploadNov(ev.target.files[0]); ev.target.value = ''; };
+  document.querySelectorAll('table.form input, table.form select').forEach(el => {
+    const h = () => { const r = UI.grid[+el.dataset.i]; const k = el.dataset.k; let v = el.value; if (['dias', 'faltas', 'he25', 'he35', 'bono', 'mov', 'sueldo'].includes(k)) v = num(v); if (k === 'dni') v = String(v).trim(); if (r[k] !== v) { r[k] = v; UI.gridDirty = true; } };
+    if (el.tagName === 'SELECT') el.onchange = () => { h(); render(); }; else { el.oninput = h; el.onchange = () => { h(); render(); }; el.onkeydown = ev => { if (ev.key === 'Enter') { ev.preventDefault(); el.blur(); } }; }
+  });
+  const ba = $('#bAlta'); if (ba) ba.onclick = () => { UI.grid.push({ dni: '', ficha: '', nombre: '', dias: '', faltas: 0, he25: 0, he35: 0, bono: 0, mov: 0, movimiento: 'ALTA', fecha: '', sueldo: '', obs: '' }); UI.gridDirty = true; render(); };
+  document.querySelectorAll('[data-del]').forEach(b => b.onclick = () => { UI.grid.splice(+b.dataset.del, 1); UI.gridDirty = true; render(); });
+  const be = $('#bEnviar'); if (be) be.onclick = enviarNov;
+  // admin
+  const bnc = $('#bNovCli'); if (bnc) bnc.onclick = () => bajarNovCliente(UI.emp);
+  const bc = $('#bComp'); if (bc) bc.onclick = () => bajarComprobantes(UI.emp);
+  document.querySelectorAll('[data-rep]').forEach(i => i.onchange = ev => { if (ev.target.files[0]) onUploadRep(ev.target.files[0], i.dataset.rep); ev.target.value = ''; });
+  document.querySelectorAll('[data-maphi]').forEach(s => s.onchange = () => { UI.map[UI.emp + s.dataset.maphi] = { hi: +s.value }; render(); });
+  document.querySelectorAll('[data-mapk]').forEach(s => s.onchange = () => { const st = UI.map[UI.emp + s.dataset.src]; if (s.value === '') delete st[s.dataset.mapk]; else st[s.dataset.mapk] = +s.value; });
+  document.querySelectorAll('[data-mapok]').forEach(b => b.onclick = () => {
+    const src = b.dataset.mapok, st = UI.map[UI.emp + src], t = TMP[UI.emp + src]; const m = {}; ['doc', 'nombre', 'neto', 'ing', 'desc'].forEach(k => { if (st[k] !== undefined) m[k] = st[k]; });
+    if (m.doc === undefined || (m.neto === undefined && (m.ing === undefined || m.desc === undefined))) return toast('Indica la columna de documento y la de neto (o ingresos y descuentos).', 'bad');
+    guardarRep(UI.emp, src, t.file, t.aoa, st.hi || 0, m, 'manual');
+  });
+  const cd = $('#chkDif'); if (cd) cd.onchange = ev => { UI.soloDif = ev.target.checked; render(); };
+  const br = $('#bRep'); if (br) br.onclick = () => reporteValidacion(UI.emp);
+  const aut = id => { const X = cruce(id); if (!X || !X.ok100) return toast('Solo se autoriza cuando el 100 % de los netos cuadra.', 'bad'); Store.save(id, { aprob: { fecha: nowTxt(), usuario: SES.nombre } }).then(ok => ok && toast('✓ Emisión autorizada: ' + EMP[id].nombre, 'ok')); };
+  const bau = $('#bAut'); if (bau) bau.onclick = () => aut(UI.emp);
+  document.querySelectorAll('[data-aut]').forEach(b => b.onclick = () => aut(b.dataset.aut));
+  document.querySelectorAll('[data-reab]').forEach(b => b.onclick = () => Store.save(b.dataset.reab, { aprob: undefined }));
+  document.querySelectorAll('[data-go]').forEach(b => b.onclick = () => { UI.tab = b.dataset.go; UI.emp = b.dataset.e; render(); });
+  const rs = $('#bReset'); if (rs) rs.onclick = () => $('#resetBox').classList.remove('hidden');
+  const rn = $('#bResetNo'); if (rn) rn.onclick = () => $('#resetBox').classList.add('hidden');
+  const ro = $('#bResetOk'); if (ro) ro.onclick = async () => { for (const e of EMPS) { Store.docs[e.id] = {}; if (!Store.local) { try { await Store.db.doc('cierres/' + PER + '-' + e.id).set({}); } catch (x) { } } try { localStorage.removeItem('sid2:' + PER + ':' + e.id); } catch (x) { } } toast('Cierre de prueba reiniciado', 'ok'); render(); };
+}
+document.addEventListener('DOMContentLoaded', () => {
+  $('#selLang').onchange = ev => { lang = ev.target.value; render(); };
+  $('#bSalir').onclick = () => { SES = null; UI.grid = null; UI.upload = null; try { sessionStorage.removeItem('sid2:ses'); } catch (e) { } lang = 'es'; $('#selLang').value = 'es'; render(); };
+  document.querySelectorAll('#nav [data-tab]').forEach(b => b.onclick = () => { UI.tab = b.dataset.tab; render(); });
+  if (SES && SES.emp) { lang = EMP[SES.emp].idioma; $('#selLang').value = lang; }
+  render(); Store.init();
+});
+window.__t = { cruce, validarNov, Store, comprobantes, get UI() { return UI; } };
+</script>
+</body></html>
