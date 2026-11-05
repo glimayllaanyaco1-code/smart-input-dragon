@@ -74,6 +74,7 @@ table.form input:focus,table.form select:focus{outline:none;border-color:#e8b04a
 .kpi .kv.sm{font-size:20px}.pok2{background:#eef7e9;color:#4d7c2a}.pap{background:var(--navy);color:#fff}
 .bold{font-weight:700}.res b{font-size:13px}tr.tot td{font-weight:700;background:#eef1f4!important;border-top:2px solid var(--navy)}.b{font-weight:700}
 .ecard.snone{border-top-color:#c9d1d9}
+.flow{display:flex;flex-direction:column;gap:8px;border:1px solid var(--line);border-radius:10px;padding:12px;background:#fbfcfd}.fstep{display:flex;align-items:center;gap:10px;flex-wrap:wrap}.pnum{width:24px;height:24px;border-radius:50%;background:#e3e7ec;display:grid;place-items:center;font-weight:700;font-size:12px}.pnum.pok{background:var(--ok);color:#fff}.ptxt{min-width:230px;font-weight:600}
 .pipe{list-style:none;margin:12px 0 0;padding:0}.pipe li{display:flex;gap:10px;padding:5px 0;font-size:13px;align-items:flex-start}
 .pipe .dot{width:20px;height:20px;border-radius:50%;border:2px solid #c9d1d9;display:grid;place-items:center;font-size:11px;font-weight:700;flex:none;color:#fff}
 .pipe li.done .dot{background:var(--ok);border-color:var(--ok)}.pipe li.wrn .dot{background:var(--bad);border-color:var(--bad)}
@@ -479,8 +480,16 @@ function comprobantes(empId) {
   });
   return out;
 }
+function procesar(id) {
+  const nov = Store.get(id).novedades; if (!nov) return;
+  if (sinSueldo(id).length) { UI.base = id; render(); return; }
+  UI.base = null;
+  const lineas = comprobantes(id);
+  Store.save(id, { procesado: { fecha: nowTxt(), version: nov.version, lineas } }).then(ok => ok && toast(`✓ Novedades procesadas: ${lineas.length} líneas para Comprobantes Históricos`, 'ok'));
+}
 async function bajarComprobantes(empId) {
-  const rows = comprobantes(empId);
+  const d = Store.get(empId); if (!d.procesado || d.procesado.version !== d.novedades.version) return toast('Primero procesa las novedades.', 'bad');
+  const rows = d.procesado.lineas;
   const ws = sheet([['Número de Documento', 'Código de Ficha', 'Mes', 'Código Ítem', 'Monto', 'Descripción'], ...rows], [20, 16, 12, 32, 12, 32]); textCol(ws, 0, 1);
   const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, 'Lineas');
   if (await descargar(`Comprobantes_Historicos_${empId}_${PER}.xlsx`, wb)) Store.save(empId, { comprobantes: { fecha: nowTxt(), lineas: rows.length, version: Store.get(empId).novedades.version } });
@@ -534,7 +543,8 @@ function onUploadMaestro(file) {
     if (err) return toast('No se pudo leer el archivo: ' + err.message, 'bad');
     const M = maestroDesde(sheets);
     if (!M) return toast('No encontré columnas de documento, nombre y sueldo base en el archivo.', 'bad');
-    Store.save(id, { maestro: { rows: M.rows, archivo: file.name, fecha: nowTxt() } }).then(ok => ok && toast(`✓ Maestro actualizado: ${M.rows.length} trabajadores (hoja «${M.hoja}»)`, 'ok'));
+    const auto = UI.base === id;
+    Store.save(id, { maestro: { rows: M.rows, archivo: file.name, fecha: nowTxt() } }).then(ok => { if (!ok) return; toast(`✓ Base de sueldos registrada: ${M.rows.length} trabajadores`, 'ok'); if (auto) { UI.base = null; procesar(id); } });
   });
 }
 function vNovedades() {
@@ -543,26 +553,32 @@ function vNovedades() {
   if (!nov) body = `<div class="banner warn mt">El cliente aún no envía sus novedades de ${PER}.</div>`;
   else {
     const movs = nov.rows.filter(r => r.movimiento);
-    const comp = comprobantes(id);
-    body = `<div class="filemeta mt"><span>📨 Enviado: <b>${esc(nov.fecha)}</b></span><span>Usuario: ${esc(nov.usuario)}</span><span>Origen: ${esc(nov.archivo)}</span><span>Idioma: ${{ es: 'Español', en: 'English', zh: '中文' }[nov.idioma]}</span><span>Versión ${nov.version}</span></div>
-      <div class="row wrap gap mt"><button class="btn" id="bNovCli">⬇ Novedades del cliente (.xlsx)</button><button class="btn primary" id="bComp">⬇ Comprobantes Históricos para Buk (${comp.length} líneas)</button>
-      ${d.comprobantes ? `<span class="tok small">✓ Descargado ${esc(d.comprobantes.fecha)}${d.comprobantes.version !== nov.version ? ' · <b class="tbad">el cliente reenvió: vuelve a descargar</b>' : ''}</span>` : ''}</div>
-      ${sinSueldo(id).length ? `<div class="banner bad mt">Falta el sueldo de ${sinSueldo(id).map(r => esc(r.nombre || r.dni)).join(', ')} para calcular sus montos. Carga el maestro de trabajadores (abajo, configuración del cliente) y vuelve a descargar.</div>` : ''}
-      ${movs.length ? `<div class="banner warn mt">Movimientos de personal: ${movs.map(r => `<b>${r.movimiento}</b> ${esc(r.nombre)} (${esc(r.dni)}) ${esc(r.fecha)}`).join(' · ')} — regístralos en Buk antes de procesar. Están en la hoja «Altas y bajas».</div>` : ''}
-      <div class="tablewrap mt"><table class="grid"><thead><tr><th>Documento</th><th>Ficha</th><th>Trabajador</th><th class="num">Días</th><th class="num">Faltas</th><th class="num">Vac. (d → S/)</th><th class="num">D. médico (d → S/)</th><th class="num">HE 25 % (h → S/)</th><th class="num">HE 35 % (h → S/)</th><th class="num">Bono</th><th class="num">Movilidad</th><th class="num">Desc. faltas</th><th>Movimiento</th></tr></thead><tbody>
-      ${nov.rows.map(r => { const m = montos(r, id); return `<tr><td class="mono">${esc(r.dni)}</td><td class="mono">${esc(r.ficha || m.ficha || '—')}</td><td>${esc(r.nombre)}</td><td class="num">${r.dias}</td><td class="num">${r.faltas || 0}</td><td class="num mono">${r.vac || 0} → ${fmt(m.vac)}</td><td class="num mono">${r.dm || 0} → ${fmt(m.dm)}</td><td class="num mono">${r.he25 || 0} → ${fmt(m.h25)}</td><td class="num mono">${r.he35 || 0} → ${fmt(m.h35)}</td><td class="num mono">${fmt(m.bono)}</td><td class="num mono">${fmt(m.mov)}</td><td class="num mono">${fmt(m.falt)}</td><td>${r.movimiento ? `<span class="pill ${r.movimiento === 'ALTA' ? 'pok' : 'pbad'}">${r.movimiento} ${esc(r.fecha)}</span>` : '—'}</td></tr>`; }).join('')}
+    const proc = d.procesado, vig = !!(proc && proc.version === nov.version);
+    const paso = (n, txt, ok) => `<span class="pnum ${ok ? 'pok' : ''}">${ok ? '✓' : n}</span><span class="ptxt">${txt}</span>`;
+    body = `<div class="filemeta mt"><span>📨 Recibido: <b>${esc(nov.fecha)}</b></span><span>Usuario: ${esc(nov.usuario)}</span><span>Origen: ${esc(nov.archivo)}</span><span>Idioma: ${{ es: 'Español', en: 'English', zh: '中文' }[nov.idioma]}</span><span>Versión ${nov.version}</span></div>
+      <div class="flow mt">
+        <div class="fstep">${paso(1, 'Revisa lo que envió el cliente', true)}<button class="btn" id="bNovCli">⬇ Novedades del cliente (.xlsx)</button></div>
+        <div class="fstep">${paso(2, 'Procesa las novedades', vig)}<button class="btn ${vig ? '' : 'primary'}" id="bProc">⚙ ${vig ? 'Volver a procesar' : 'Procesar novedades enviadas por el cliente'}</button>${vig ? `<span class="small tok">Procesado ${esc(proc.fecha)}</span>` : proc ? `<span class="small twarn">El cliente reenvió (versión ${nov.version}): procesa de nuevo</span>` : ''}</div>
+        <div class="fstep">${paso(3, 'Descarga el archivo para Buk', vig && d.comprobantes && d.comprobantes.version === nov.version)}<button class="btn ${vig ? 'go' : ''}" id="bComp" ${vig ? '' : 'disabled'}>⬇ Comprobantes Históricos para Buk${vig ? ` (${proc.lineas.length} líneas)` : ''}</button>${d.comprobantes && vig && d.comprobantes.version === nov.version ? `<span class="small tok">Descargado ${esc(d.comprobantes.fecha)}</span>` : ''}</div>
+      </div>
+      ${UI.base === id ? `<div class="banner ap mt"><b>Primera vez con este cliente:</b> para convertir días y horas en soles se necesita la base de sueldos. Carga el reporte de planilla de Buk del cliente (se registra una sola vez y luego se actualiza solo).
+        <div class="mt"><label class="btn primary"><input type="file" id="fBase" accept=".xlsx,.xls,.xml,.csv" hidden>⬆ Cargar base de sueldos y procesar</label> <button class="lnk" id="bBaseNo">Cancelar</button></div></div>` : ''}
+      ${movs.length ? `<div class="banner ap mt small">Movimientos de personal informados: ${movs.map(r => `<b>${r.movimiento}</b> ${esc(r.nombre)} (${esc(r.dni)}) ${esc(r.fecha)}`).join(' · ')}. Están en la hoja «Altas y bajas» del archivo de novedades.</div>` : ''}
+      <div class="tablewrap mt"><table class="grid"><thead><tr><th>Documento</th><th>Ficha</th><th>Trabajador</th><th class="num">Días</th><th class="num">Faltas</th><th class="num">Vac. (días${vig ? ' → S/' : ''})</th><th class="num">D. médico (días${vig ? ' → S/' : ''})</th><th class="num">HE 25 % (h${vig ? ' → S/' : ''})</th><th class="num">HE 35 % (h${vig ? ' → S/' : ''})</th><th class="num">Bono</th><th class="num">Movilidad</th>${vig ? '<th class="num">Desc. faltas</th>' : ''}<th>Movimiento</th></tr></thead><tbody>
+      ${nov.rows.map(r => { const m = montos(r, id); const q = (n, v) => vig ? `${n || 0} → ${fmt(v)}` : `${n || 0}`;
+        return `<tr><td class="mono">${esc(r.dni)}</td><td class="mono">${esc(r.ficha || m.ficha || r.dni)}</td><td>${esc(r.nombre)}</td><td class="num">${r.dias}</td><td class="num">${r.faltas || 0}</td><td class="num mono">${q(r.vac, m.vac)}</td><td class="num mono">${q(r.dm, m.dm)}</td><td class="num mono">${q(r.he25, m.h25)}</td><td class="num mono">${q(r.he35, m.h35)}</td><td class="num mono">${fmt(m.bono)}</td><td class="num mono">${fmt(m.mov)}</td>${vig ? `<td class="num mono">${fmt(m.falt)}</td>` : ''}<td>${r.movimiento ? `<span class="pill ${r.movimiento === 'ALTA' ? 'pok' : 'pbad'}">${r.movimiento} ${esc(r.fecha)}</span>` : '—'}</td></tr>`; }).join('')}
       </tbody></table></div>
-      <details class="mt small"><summary>Códigos de ítem usados en Comprobantes Históricos</summary><table class="grid sm mt"><thead><tr><th>Código Ítem</th><th>Descripción</th><th>Cálculo</th></tr></thead><tbody>
+      <details class="mt small"><summary>Códigos de ítem y cálculo usados al procesar</summary><table class="grid sm mt"><thead><tr><th>Código Ítem</th><th>Descripción</th><th>Cálculo</th></tr></thead><tbody>
       <tr><td class="mono">horas_extras_25</td><td>Horas extras 25 %</td><td>(sueldo + asig. familiar) / 240 × 1.25 × horas</td></tr><tr><td class="mono">horas_extras_35</td><td>Horas extras 35 %</td><td>(sueldo + asig. familiar) / 240 × 1.35 × horas</td></tr>
       <tr><td class="mono">buk_pago_vacaciones</td><td>Remuneración vacacional</td><td>(sueldo + asig. familiar) / 30 × días</td></tr><tr><td class="mono">buk_licencia_descanso_medico</td><td>Descanso médico</td><td>(sueldo + asig. familiar) / 30 × días</td></tr>
       <tr><td class="mono">bono_desempeno</td><td>Bono por desempeño</td><td>monto informado</td></tr><tr><td class="mono">movilidad_condicion_trabajo</td><td>Movilidad</td><td>monto informado</td></tr><tr><td class="mono">descuento_inasistencia</td><td>Descuento por inasistencias</td><td>sueldo / 30 × faltas</td></tr></tbody></table>
-      <p class="muted">Las altas entran en Comprobantes Históricos cuando ya figuran en el maestro (tienen ficha en Buk). Verifica los códigos con la configuración de ítems de cada empresa en Buk.</p></details>`;
+      <p class="muted">Verifica los códigos con la configuración de ítems de cada empresa en Buk.</p></details>`;
   }
   const dm = Store.get(id).maestro;
-  const mbox = `<details class="mt small" ${!maestroDe(id).length ? 'open' : ''}><summary><b>Configuración del cliente: maestro de trabajadores (${maestroDe(id).length})</b> — no es un paso del mes</summary><div class="upbox mt"><div class="row wrap gap"><div><div class="ut">Maestro de trabajadores (${maestroDe(id).length})</div><div class="small muted">${dm ? `Cargado desde ${esc(dm.archivo)} · ${esc(dm.fecha)}` : EMP[id].real ? 'Empresa real: carga el reporte de planilla de Buk para armar el maestro. Se guarda solo en el servidor.' : 'Maestro de prueba incluido en el prototipo.'}</div></div><span class="sp"></span>
+  const mbox = `<details class="mt small"><summary><b>Configuración del cliente: maestro de trabajadores (${maestroDe(id).length})</b> — no es un paso del mes</summary><div class="upbox mt"><div class="row wrap gap"><div><div class="ut">Maestro de trabajadores (${maestroDe(id).length})</div><div class="small muted">${dm ? `Cargado desde ${esc(dm.archivo)} · ${esc(dm.fecha)}` : EMP[id].real ? 'Empresa real: carga el reporte de planilla de Buk para armar el maestro. Se guarda solo en el servidor.' : 'Maestro de prueba incluido en el prototipo.'}</div></div><span class="sp"></span>
     <label class="btn ${EMP[id].real && !dm ? 'primary' : ''}"><input type="file" id="fMaestro" accept=".xlsx,.xls,.xml,.csv" hidden>⬆ ${dm ? 'Actualizar' : 'Cargar'} maestro desde reporte de Buk</label></div>
     <div class="small muted mt">Toma documento, nombre, cargo, sueldo base, asignación familiar, AFP/ONP y fecha de ingreso. El cliente ve este maestro en su formato de novedades. <b>Se actualiza solo</b> cada vez que cargas el reporte de planilla de Buk en la Validación cruzada; solo hace falta cargarlo aquí la primera vez, para que el formato del cliente salga con sus trabajadores y se calculen los montos de Comprobantes Históricos.</div></div></details>`;
-  return `<section class="card"><div class="row wrap gap">${selEmp()}<span class="hint">Paso 1: el cliente ya envió sus novedades → descarga Comprobantes Históricos y cárgalo en Buk para procesar la planilla.</span></div>${body}${mbox}</section>`;
+  return `<section class="card"><div class="row wrap gap">${selEmp()}<span class="hint">Paso 1: revisa las novedades del cliente → procésalas → descarga Comprobantes Históricos y cárgalo en Buk.</span></div>${body}${mbox}</section>`;
 }
 
 /* =====================================================================
@@ -815,6 +831,9 @@ function bind() {
   const be = $('#bEnviar'); if (be) be.onclick = enviarNov;
   // admin
   const fm = $('#fMaestro'); if (fm) fm.onchange = ev => { if (ev.target.files[0]) onUploadMaestro(ev.target.files[0]); ev.target.value = ''; };
+  const bp = $('#bProc'); if (bp) bp.onclick = () => procesar(UI.emp);
+  const fb = $('#fBase'); if (fb) fb.onchange = ev => { if (ev.target.files[0]) onUploadMaestro(ev.target.files[0]); ev.target.value = ''; };
+  const bbn = $('#bBaseNo'); if (bbn) bbn.onclick = () => { UI.base = null; render(); };
   const bnc = $('#bNovCli'); if (bnc) bnc.onclick = () => bajarNovCliente(UI.emp);
   const bc = $('#bComp'); if (bc) bc.onclick = () => bajarComprobantes(UI.emp);
   document.querySelectorAll('[data-rep]').forEach(i => i.onchange = ev => { if (ev.target.files[0]) onUploadRep(ev.target.files[0], i.dataset.rep); ev.target.value = ''; });
