@@ -13,7 +13,7 @@ Publicado en https://smart-input-dragon.pages.dev (Cloudflare Pages, despliegue 
 |---|---|
 | `index.html` | Página completa: CSS, `window.__CFG__` (empresas, maestro de trabajadores, periodo) y la app en JS. SheetJS desde cdnjs. |
 | `functions/api/[[route]].js` | API (Pages Functions): `/api/ping`, `/api/login`, `/api/cierre` (GET/PUT). Login con hash SHA-256 `sid:<usuario>:<clave>` y token HMAC con `SESSION_SECRET`. Datos en KV `DATA`, clave `cierre:<AAAA-MM>:<EMPRESA>`. |
-| `logo.png`, `logo-mark.png`, `favicon.png` | Marca de Dragon Business Partners (logo completo en el login, marca DBP en la cabecera). |
+| `logo.svg`, `logo-mark.svg`, `favicon.svg` (+ `.png` en HD) | Marca de Dragon Business Partners en vectorial: logo completo en el login, marca DBP con el dragón en la cabecera. |
 | `README.md` | Configuración de Cloudflare. |
 
 Modos de datos en la página (`Store`): `api` (Cloudflare, compartido), `db` (artifact de claude.ai), `local` (solo navegador).
