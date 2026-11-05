@@ -13,6 +13,7 @@ Publicado en https://smart-input-dragon.pages.dev (Cloudflare Pages, despliegue 
 |---|---|
 | `index.html` | Página completa: CSS, `window.__CFG__` (empresas, maestro de trabajadores, periodo) y la app en JS. SheetJS desde cdnjs. |
 | `functions/api/[[route]].js` | API (Pages Functions): `/api/ping`, `/api/login`, `/api/cierre` (GET/PUT). Login con hash SHA-256 `sid:<usuario>:<clave>` y token HMAC con `SESSION_SECRET`. Datos en KV `DATA`, clave `cierre:<AAAA-MM>:<EMPRESA>`. |
+| `logo.png`, `logo-mark.png`, `favicon.png` | Marca de Dragon Business Partners (logo completo en el login, marca DBP en la cabecera). |
 | `README.md` | Configuración de Cloudflare. |
 
 Modos de datos en la página (`Store`): `api` (Cloudflare, compartido), `db` (artifact de claude.ai), `local` (solo navegador).
@@ -36,6 +37,9 @@ Proceso del mes: cliente carga novedades → admin revisa, pulsa «Procesar nove
 - El servidor solo habilita empresas reales si existe la variable `ACCOUNTS_JSON` (contraseñas privadas). Si está mal escrita, nadie entra.
 - Formatos reales que debe leer: reporte de Buk en inglés (`Document Number`, `NET PAY`) y R01 del PDT PLAME en .xml (encabezado en dos filas: «Documento de Identidad / Número», «Neto a pagar»).
 - Nunca subir al repositorio archivos, nombres, DNI ni contraseñas reales.
+
+## Marca
+- Colores DBP: rojo `#D90104` (acciones principales, pestaña activa, línea de cabecera) y grafito `#373737` (textos y encabezados de tablas) sobre blanco. Verde y rojo de estado solo para OK / analizar.
 
 ## Reglas
 - Solo datos **ficticios** (el repositorio es público). Nunca planillas ni DNI reales.
