@@ -303,7 +303,7 @@ function parseFecha(v) {
 const MOVALIAS = { alta: 'ALTA', hire: 'ALTA', ingreso: 'ALTA', 入职: 'ALTA', baja: 'BAJA', termination: 'BAJA', cese: 'BAJA', 离职: 'BAJA' };
 function ingresoEnPeriodo(w) { const m = String(w.ingreso || '').match(/^(\d{2})\/(\d{2})\/(\d{4})$/); return !!m && +m[3] === PY && +m[2] === PM; }
 function validarNov(rows, empId, fileLevel) {
-  const e = T().e, maestro = maestroDe(empId), byDni = Object.fromEntries(maestro.map(w => [w.dni, w]));
+  const e = T().e, maestro = maestroDe(empId), hasM = maestro.length > 0, byDni = Object.fromEntries(maestro.map(w => [w.dni, w]));
   const out = rows.map(() => []);
   const add = (i, campo, msg) => out[i].push({ campo, msg });
   const seen = {};
@@ -313,7 +313,8 @@ function validarNov(rows, empId, fileLevel) {
     if (r.movimiento === '#INVALID') add(i, 'movimiento', e.mov);
     const alta = r.movimiento === 'ALTA', baja = r.movimiento === 'BAJA';
     if (dni && seen[dni]) add(i, 'dni', e.dup); seen[dni] = 1;
-    if (dni && !alta && !byDni[dni] && /^\d{8}$/.test(dni)) add(i, 'dni', e.noMaestro);
+    if (hasM && dni && !alta && !byDni[dni] && /^\d{8}$/.test(dni)) add(i, 'dni', e.noMaestro);
+    if (!hasM && !String(r.nombre || '').trim()) add(i, 'nombre', e.req);
     if (dni && alta && byDni[dni] && !ingresoEnPeriodo(byDni[dni])) add(i, 'dni', e.yaExiste);
     if (dni && !alta && byDni[dni] && r.ficha && String(r.ficha).trim() !== byDni[dni].ficha) add(i, 'ficha', e.ficha);
     if (alta && !String(r.nombre || '').trim()) add(i, 'nombre', e.req);
@@ -339,8 +340,8 @@ function validarNov(rows, empId, fileLevel) {
     if (alta) { const s = num(r.sueldo); if (s === '' || isNaN(s) || s < RMV) add(i, 'sueldo', e.sueldo); }
   });
   const global = [];
-  if (fileLevel) maestro.forEach(w => { if (!rows.some(r => String(r.dni).trim() === w.dni)) global.push({ fila: '—', campo: 'dni', msg: e.falta + ': ' + w.dni + ' ' + w.nombre }); });
-  else maestro.forEach(w => { if (!rows.some(r => String(r.dni).trim() === w.dni)) global.push({ fila: '—', campo: 'dni', msg: e.falta + ': ' + w.dni + ' ' + w.nombre }); });
+  if (hasM && fileLevel) maestro.forEach(w => { if (!rows.some(r => String(r.dni).trim() === w.dni)) global.push({ fila: '—', campo: 'dni', msg: e.falta + ': ' + w.dni + ' ' + w.nombre }); });
+  else if (hasM) maestro.forEach(w => { if (!rows.some(r => String(r.dni).trim() === w.dni)) global.push({ fila: '—', campo: 'dni', msg: e.falta + ': ' + w.dni + ' ' + w.nombre }); });
   return { porFila: out, global, total: out.reduce((s, x) => s + x.length, 0) + global.length };
 }
 /* encabezados del formato (aceptados en los 3 idiomas) */
@@ -424,7 +425,7 @@ async function enviarNov() {
 }
 function vCliente() {
   const t = T(), e = EMP[SES.emp], d = Store.get(SES.emp), bloq = !!d.aprob;
-  if (!maestroDe(SES.emp).length) return `<div class="cl-head card"><div><div class="en">${esc(e.nombre)}</div><div class="small muted">RUC ${e.ruc} · ${t.periodo} ${PER}</div></div><div class="banner warn">${lang === 'en' ? 'Your payroll administrator has not loaded your employee list yet.' : lang === 'zh' ? '薪资管理员尚未上传贵公司员工名单。' : 'Tu administrador de planillas aún no carga la lista de trabajadores.'}</div></div>`;
+  const sinMaestro = !maestroDe(SES.emp).length;
   if (!UI.grid) UI.grid = gridInicial(SES.emp);
   const v = validarNov(UI.grid, SES.emp);
   const nov = d.novedades;
@@ -446,7 +447,7 @@ function vCliente() {
     </section>
   </div>
   <section class="card"><div class="row wrap gap between"><div><h3>${t.paso2}</h3><p class="small muted">${t.paso2d}</p></div>
-    <div class="row gap">${bloq ? '' : `<button class="btn" id="bAlta">${t.agregarAlta}</button>`}<button class="btn go" id="bEnviar" ${bloq || v.total ? 'disabled' : ''}>✓ ${t.enviar}</button></div></div>
+    <div class="row gap">${bloq ? '' : `<button class="btn" id="bAlta">${sinMaestro ? (lang === 'en' ? '+ Add employee' : lang === 'zh' ? '+ 新增员工' : '+ Agregar trabajador') : t.agregarAlta}</button>`}<button class="btn go" id="bEnviar" ${bloq || v.total ? 'disabled' : ''}>✓ ${t.enviar}</button></div></div>
     <div class="tablewrap mt"><table class="grid form"><thead><tr>${t.c.map(h => `<th>${esc(h)}</th>`).join('')}<th></th></tr></thead><tbody>
     ${UI.grid.map((r, i) => `<tr class="${v.porFila[i].length ? 'rbad' : ''}">${cell(r, i, 'dni', 'text', 'w9')}${cell(r, i, 'ficha', 'text', 'w6')}${cell(r, i, 'nombre', 'text', 'w14')}${cell(r, i, 'dias', 'num', 'w4')}${cell(r, i, 'faltas', 'num', 'w4')}${cell(r, i, 'vac', 'num', 'w4')}${cell(r, i, 'dm', 'num', 'w4')}${cell(r, i, 'he25', 'num', 'w4')}${cell(r, i, 'he35', 'num', 'w4')}${cell(r, i, 'bono', 'num', 'w6')}${cell(r, i, 'mov', 'num', 'w6')}${cell(r, i, 'movimiento')}${cell(r, i, 'fecha', 'text', 'w8')}${cell(r, i, 'sueldo', 'num', 'w6')}${cell(r, i, 'obs', 'text', 'w12')}
       <td>${!bloq && !maestroDe(SES.emp).some(w => w.dni === r.dni && r.movimiento !== 'ALTA') ? `<button class="lnk" data-del="${i}">${t.quitar}</button>` : ''}</td></tr>`).join('')}
@@ -464,12 +465,17 @@ function montos(r, empId) {
   const vh = (sueldo + asig) / 240;
   return { h25: r2(vh * 1.25 * (Number(r.he25) || 0)), h35: r2(vh * 1.35 * (Number(r.he35) || 0)), bono: r2(Number(r.bono) || 0), mov: r2(Number(r.mov) || 0), falt: r2(sueldo / 30 * (Number(r.faltas) || 0)), vac: r2((sueldo + asig) / 30 * (Number(r.vac) || 0)), dm: r2((sueldo + asig) / 30 * (Number(r.dm) || 0)), ficha: w ? w.ficha : '' };
 }
+function sinSueldo(empId) {
+  const nov = Store.get(empId).novedades; if (!nov) return [];
+  const M = maestroDe(empId);
+  return nov.rows.filter(r => !M.some(w => w.dni === r.dni) && !(Number(r.sueldo) > 0) && (Number(r.he25) || Number(r.he35) || Number(r.vac) || Number(r.dm) || Number(r.faltas)));
+}
 function comprobantes(empId) {
   const nov = Store.get(empId).novedades; if (!nov) return [];
   const out = [];
-  nov.rows.filter(r => r.movimiento !== 'ALTA' || maestroDe(empId).some(w => w.dni === r.dni)).forEach(r => {
+  nov.rows.filter(r => r.movimiento !== 'ALTA' || maestroDe(empId).some(w => w.dni === r.dni) || !maestroDe(empId).length).forEach(r => {
     const m = montos(r, empId);
-    ITEMS.forEach(it => { if (m[it.k] > 0) out.push([String(r.dni), m.ficha, MES01, it.code, m[it.k], it.desc]); });
+    ITEMS.forEach(it => { if (m[it.k] > 0) out.push([String(r.dni), m.ficha || String(r.ficha || '').trim() || String(r.dni), MES01, it.code, m[it.k], it.desc]); });
   });
   return out;
 }
@@ -507,24 +513,28 @@ function regimenDe(afp, com) {
   const base = a.includes('profuturo') ? 'PROFUTURO' : a.includes('integra') ? 'INTEGRA' : a.includes('habitat') ? 'HABITAT' : a.includes('prima') ? 'PRIMA' : 'INTEGRA';
   return c.includes('mixta') ? base + '-M' : base;
 }
+function maestroDesde(sheets) {
+  for (const sh of sheets) for (let i = 0; i < Math.min(sh.aoa.length, 40); i++) {
+    const m = {}; sh.aoa[i].forEach((h, j) => { const n = norm(h); for (const [k, arr] of Object.entries(MAESTROALIAS)) if (m[k] === undefined && arr.includes(n)) m[k] = j; });
+    if (m.doc === undefined || m.nombre === undefined || m.sueldo === undefined) continue;
+    const rows = sh.aoa.slice(i + 1).map(r => {
+      const doc = String(r[m.doc] ?? '').trim(); if (!/^[0-9A-Z]{7,12}$/i.test(doc)) return null;
+      if (m.estado !== undefined && /cesad|inactiv|retirad|terminated/i.test(String(r[m.estado]))) return null;
+      const ing = m.ingreso !== undefined ? parseFecha(r[m.ingreso]) : '';
+      return { dni: doc, ficha: m.ficha !== undefined && String(r[m.ficha]).trim() ? String(r[m.ficha]).trim() : doc, nombre: String(r[m.nombre]).trim(), cargo: m.cargo !== undefined ? String(r[m.cargo]).trim() : '',
+        sueldo: r2(num(r[m.sueldo]) || 0), asigFam: m.asig !== undefined ? r2(num(r[m.asig]) || 0) : 0, regimen: regimenDe(m.afp !== undefined ? r[m.afp] : '', m.com !== undefined ? r[m.com] : ''), ingreso: ing };
+    }).filter(Boolean);
+    if (rows.length) return { rows, hoja: sh.name };
+  }
+  return null;
+}
 function onUploadMaestro(file) {
   const id = UI.emp;
   leerLibro(file, (err, sheets) => {
     if (err) return toast('No se pudo leer el archivo: ' + err.message, 'bad');
-    for (const sh of sheets) for (let i = 0; i < Math.min(sh.aoa.length, 40); i++) {
-      const m = {}; sh.aoa[i].forEach((h, j) => { const n = norm(h); for (const [k, arr] of Object.entries(MAESTROALIAS)) if (m[k] === undefined && arr.includes(n)) m[k] = j; });
-      if (m.doc === undefined || m.nombre === undefined || m.sueldo === undefined) continue;
-      const rows = sh.aoa.slice(i + 1).map(r => {
-        const doc = String(r[m.doc] ?? '').trim(); if (!/^[0-9A-Z]{7,12}$/i.test(doc)) return null;
-        if (m.estado !== undefined && /cesad|inactiv|retirad|terminated/i.test(String(r[m.estado]))) return null;
-        const ing = m.ingreso !== undefined ? parseFecha(r[m.ingreso]) : '';
-        return { dni: doc, ficha: m.ficha !== undefined && String(r[m.ficha]).trim() ? String(r[m.ficha]).trim() : doc, nombre: String(r[m.nombre]).trim(), cargo: m.cargo !== undefined ? String(r[m.cargo]).trim() : '',
-          sueldo: r2(num(r[m.sueldo]) || 0), asigFam: m.asig !== undefined ? r2(num(r[m.asig]) || 0) : 0, regimen: regimenDe(m.afp !== undefined ? r[m.afp] : '', m.com !== undefined ? r[m.com] : ''), ingreso: ing };
-      }).filter(Boolean);
-      if (!rows.length) continue;
-      return Store.save(id, { maestro: { rows, archivo: file.name, fecha: nowTxt() } }).then(ok => ok && toast(`✓ Maestro actualizado: ${rows.length} trabajadores (hoja «${sh.name}»)`, 'ok'));
-    }
-    toast('No encontré columnas de documento, nombre y sueldo base en el archivo.', 'bad');
+    const M = maestroDesde(sheets);
+    if (!M) return toast('No encontré columnas de documento, nombre y sueldo base en el archivo.', 'bad');
+    Store.save(id, { maestro: { rows: M.rows, archivo: file.name, fecha: nowTxt() } }).then(ok => ok && toast(`✓ Maestro actualizado: ${M.rows.length} trabajadores (hoja «${M.hoja}»)`, 'ok'));
   });
 }
 function vNovedades() {
@@ -537,6 +547,7 @@ function vNovedades() {
     body = `<div class="filemeta mt"><span>📨 Enviado: <b>${esc(nov.fecha)}</b></span><span>Usuario: ${esc(nov.usuario)}</span><span>Origen: ${esc(nov.archivo)}</span><span>Idioma: ${{ es: 'Español', en: 'English', zh: '中文' }[nov.idioma]}</span><span>Versión ${nov.version}</span></div>
       <div class="row wrap gap mt"><button class="btn" id="bNovCli">⬇ Novedades del cliente (.xlsx)</button><button class="btn primary" id="bComp">⬇ Comprobantes Históricos para Buk (${comp.length} líneas)</button>
       ${d.comprobantes ? `<span class="tok small">✓ Descargado ${esc(d.comprobantes.fecha)}${d.comprobantes.version !== nov.version ? ' · <b class="tbad">el cliente reenvió: vuelve a descargar</b>' : ''}</span>` : ''}</div>
+      ${sinSueldo(id).length ? `<div class="banner bad mt">Falta el sueldo de ${sinSueldo(id).map(r => esc(r.nombre || r.dni)).join(', ')} para calcular sus montos. Carga el maestro de trabajadores (abajo, configuración del cliente) y vuelve a descargar.</div>` : ''}
       ${movs.length ? `<div class="banner warn mt">Movimientos de personal: ${movs.map(r => `<b>${r.movimiento}</b> ${esc(r.nombre)} (${esc(r.dni)}) ${esc(r.fecha)}`).join(' · ')} — regístralos en Buk antes de procesar. Están en la hoja «Altas y bajas».</div>` : ''}
       <div class="tablewrap mt"><table class="grid"><thead><tr><th>Documento</th><th>Ficha</th><th>Trabajador</th><th class="num">Días</th><th class="num">Faltas</th><th class="num">Vac. (d → S/)</th><th class="num">D. médico (d → S/)</th><th class="num">HE 25 % (h → S/)</th><th class="num">HE 35 % (h → S/)</th><th class="num">Bono</th><th class="num">Movilidad</th><th class="num">Desc. faltas</th><th>Movimiento</th></tr></thead><tbody>
       ${nov.rows.map(r => { const m = montos(r, id); return `<tr><td class="mono">${esc(r.dni)}</td><td class="mono">${esc(r.ficha || m.ficha || '—')}</td><td>${esc(r.nombre)}</td><td class="num">${r.dias}</td><td class="num">${r.faltas || 0}</td><td class="num mono">${r.vac || 0} → ${fmt(m.vac)}</td><td class="num mono">${r.dm || 0} → ${fmt(m.dm)}</td><td class="num mono">${r.he25 || 0} → ${fmt(m.h25)}</td><td class="num mono">${r.he35 || 0} → ${fmt(m.h35)}</td><td class="num mono">${fmt(m.bono)}</td><td class="num mono">${fmt(m.mov)}</td><td class="num mono">${fmt(m.falt)}</td><td>${r.movimiento ? `<span class="pill ${r.movimiento === 'ALTA' ? 'pok' : 'pbad'}">${r.movimiento} ${esc(r.fecha)}</span>` : '—'}</td></tr>`; }).join('')}
@@ -548,10 +559,10 @@ function vNovedades() {
       <p class="muted">Las altas entran en Comprobantes Históricos cuando ya figuran en el maestro (tienen ficha en Buk). Verifica los códigos con la configuración de ítems de cada empresa en Buk.</p></details>`;
   }
   const dm = Store.get(id).maestro;
-  const mbox = `<div class="upbox mt"><div class="row wrap gap"><div><div class="ut">Maestro de trabajadores (${maestroDe(id).length})</div><div class="small muted">${dm ? `Cargado desde ${esc(dm.archivo)} · ${esc(dm.fecha)}` : EMP[id].real ? 'Empresa real: carga el reporte de planilla de Buk para armar el maestro. Se guarda solo en el servidor.' : 'Maestro de prueba incluido en el prototipo.'}</div></div><span class="sp"></span>
+  const mbox = `<details class="mt small" ${!maestroDe(id).length ? 'open' : ''}><summary><b>Configuración del cliente: maestro de trabajadores (${maestroDe(id).length})</b> — no es un paso del mes</summary><div class="upbox mt"><div class="row wrap gap"><div><div class="ut">Maestro de trabajadores (${maestroDe(id).length})</div><div class="small muted">${dm ? `Cargado desde ${esc(dm.archivo)} · ${esc(dm.fecha)}` : EMP[id].real ? 'Empresa real: carga el reporte de planilla de Buk para armar el maestro. Se guarda solo en el servidor.' : 'Maestro de prueba incluido en el prototipo.'}</div></div><span class="sp"></span>
     <label class="btn ${EMP[id].real && !dm ? 'primary' : ''}"><input type="file" id="fMaestro" accept=".xlsx,.xls,.xml,.csv" hidden>⬆ ${dm ? 'Actualizar' : 'Cargar'} maestro desde reporte de Buk</label></div>
-    <div class="small muted mt">Toma documento, nombre, cargo, sueldo base, asignación familiar, AFP/ONP y fecha de ingreso. El cliente ve este maestro en su formato de novedades.</div></div>`;
-  return `<section class="card"><div class="row wrap gap">${selEmp()}<span class="hint">Paso 1 del analista: descarga las novedades y el archivo de Comprobantes Históricos para cargarlo y procesarlo en Buk.</span></div>${mbox}${body}</section>`;
+    <div class="small muted mt">Toma documento, nombre, cargo, sueldo base, asignación familiar, AFP/ONP y fecha de ingreso. El cliente ve este maestro en su formato de novedades. <b>Se actualiza solo</b> cada vez que cargas el reporte de planilla de Buk en la Validación cruzada; solo hace falta cargarlo aquí la primera vez, para que el formato del cliente salga con sus trabajadores y se calculen los montos de Comprobantes Históricos.</div></div></details>`;
+  return `<section class="card"><div class="row wrap gap">${selEmp()}<span class="hint">Paso 1: el cliente ya envió sus novedades → descarga Comprobantes Históricos y cárgalo en Buk para procesar la planilla.</span></div>${body}${mbox}</section>`;
 }
 
 /* =====================================================================
@@ -614,20 +625,23 @@ function onUploadRep(file, src) {
   const id = UI.emp;
   leerLibro(file, (err, sheets) => {
     if (err) return toast('No se pudo leer el archivo: ' + err.message, 'bad');
-    for (const sh of sheets) { const det = detectar(sh.aoa); if (det) return guardarRep(id, src, file.name, sh.aoa, det.hi, det.m, 'automática' + (sheets.length > 1 ? ', hoja «' + sh.name + '»' : '')); }
+    for (const sh of sheets) { const det = detectar(sh.aoa); if (det) return guardarRep(id, src, file.name, sh.aoa, det.hi, det.m, 'automática' + (sheets.length > 1 ? ', hoja «' + sh.name + '»' : ''), sheets); }
     const si = sheets.reduce((b, sh, i) => sh.aoa.length > sheets[b].aoa.length ? i : b, 0);
     const pivot = sheets.some(sh => sh.aoa.slice(0, 10).some(r => r.some(v => /^(row labels|etiquetas de fila|sum of|suma de)/i.test(String(v).trim()))));
     TMP[id + src] = { sheets, si, file: file.name, pivot }; UI.map[id + src] = { hi: 0 };
     toast('No reconocí las columnas automáticamente: indícalas manualmente.', 'bad'); render();
   });
 }
-function guardarRep(id, src, file, aoa, hi, m, modo) {
+function guardarRep(id, src, file, aoa, hi, m, modo, sheets) {
   const rows = extraer(aoa, hi, m);
   if (!rows.length) return toast('El archivo no tiene filas de trabajadores con documento y neto.', 'bad');
   const head = aoa[hi], prev = aoa[hi - 1] || []; const cols = Object.fromEntries(Object.entries(m).map(([k, j]) => [k, String(head[j] ?? '').trim() || String(prev[j] ?? '').trim()]));
   delete TMP[id + src]; delete UI.map[id + src];
-  Store.save(id, { [src]: { archivo: file, fecha: nowTxt(), cols, modo, rows }, aprob: undefined });
-  toast(`✓ ${file}: ${rows.length} trabajadores (columna neto: ${cols.neto || 'ingresos − descuentos'})`, 'ok');
+  const M = src === 'buk' && sheets ? maestroDesde(sheets) : null;
+  const patch = { [src]: { archivo: file, fecha: nowTxt(), cols, modo, rows }, aprob: undefined };
+  if (M) patch.maestro = { rows: M.rows, archivo: file + ' (validación)', fecha: nowTxt() };
+  Store.save(id, patch);
+  toast(`✓ ${file}: ${rows.length} trabajadores (columna neto: ${cols.neto || 'ingresos − descuentos'})${M ? ' · maestro actualizado' : ''}`, 'ok');
 }
 function cruce(id) {
   const d = Store.get(id); if (!d.buk || !d.plame) return null;
@@ -684,7 +698,7 @@ function vValidacion() {
       <tr class="tot"><td></td><td>TOTAL</td><td class="num mono">${fmt(X.tb)}</td><td class="num mono">${fmt(X.tp)}</td><td class="num mono">${fmt(X.td)}</td><td></td></tr></tbody></table></div>`
       : `<div class="banner ok mt">✓ Validación cruzada conforme: los ${X.n} netos a pagar cuadran entre Buk y PLAME (diferencia 0.00 o 0.01).</div>`}`;
   } else res = `<div class="banner warn mt">Carga los dos reportes para ejecutar el cruce de netos a pagar.</div>`;
-  return `<section class="card"><div class="row wrap gap">${selEmp()}<span class="hint">Paso 2 del analista: después de procesar en Buk y declarar en el PDT PLAME, carga los dos reportes.</span></div>
+  return `<section class="card"><div class="row wrap gap">${selEmp()}<span class="hint">Paso 2: con la planilla ya procesada en Buk (con las novedades) y declarada en el PDT PLAME, carga el reporte de planilla de Buk y el R01 para validar los netos.</span></div>
     <div class="ups mt">${box('buk', 'Reporte de planilla de Buk (procesado)', 'Reporte de planilla del mes exportado de Buk. Se usa «NET PAY», «Líquido a pagar» o «Neto a pagar».')}
     ${box('plame', 'Reporte R01 del PDT PLAME', 'Sube el R01 tal como lo genera el PDT (.xml o .xls). Se usa la columna «Neto a pagar».')}</div>${res}</section>`;
 }
@@ -796,7 +810,7 @@ function bind() {
     const h = () => { const r = UI.grid[+el.dataset.i]; const k = el.dataset.k; let v = el.value; if (['dias', 'faltas', 'vac', 'dm', 'he25', 'he35', 'bono', 'mov', 'sueldo'].includes(k)) v = num(v); if (k === 'dni') v = String(v).trim(); if (r[k] !== v) { r[k] = v; UI.gridDirty = true; } };
     if (el.tagName === 'SELECT') el.onchange = () => { h(); render(); }; else { el.oninput = h; el.onchange = () => { h(); render(); }; el.onkeydown = ev => { if (ev.key === 'Enter') { ev.preventDefault(); el.blur(); } }; }
   });
-  const ba = $('#bAlta'); if (ba) ba.onclick = () => { UI.grid.push({ dni: '', ficha: '', nombre: '', dias: '', faltas: 0, vac: 0, dm: 0, he25: 0, he35: 0, bono: 0, mov: 0, movimiento: 'ALTA', fecha: '', sueldo: '', obs: '' }); UI.gridDirty = true; render(); };
+  const ba = $('#bAlta'); if (ba) ba.onclick = () => { UI.grid.push({ dni: '', ficha: '', nombre: '', dias: '', faltas: 0, vac: 0, dm: 0, he25: 0, he35: 0, bono: 0, mov: 0, movimiento: maestroDe(SES.emp).length ? 'ALTA' : '', fecha: '', sueldo: '', obs: '' }); UI.gridDirty = true; render(); };
   document.querySelectorAll('[data-del]').forEach(b => b.onclick = () => { UI.grid.splice(+b.dataset.del, 1); UI.gridDirty = true; render(); });
   const be = $('#bEnviar'); if (be) be.onclick = enviarNov;
   // admin
@@ -810,7 +824,7 @@ function bind() {
   document.querySelectorAll('[data-mapok]').forEach(b => b.onclick = () => {
     const src = b.dataset.mapok, st = UI.map[UI.emp + src], t = TMP[UI.emp + src]; const m = {}; ['doc', 'nombre', 'neto', 'ing', 'desc'].forEach(k => { if (st[k] !== undefined) m[k] = st[k]; });
     if (m.doc === undefined || (m.neto === undefined && (m.ing === undefined || m.desc === undefined))) return toast('Indica la columna de documento y la de neto (o ingresos y descuentos).', 'bad');
-    guardarRep(UI.emp, src, t.file, t.sheets[t.si].aoa, st.hi || 0, m, 'manual' + (t.sheets.length > 1 ? ', hoja «' + t.sheets[t.si].name + '»' : ''));
+    guardarRep(UI.emp, src, t.file, t.sheets[t.si].aoa, st.hi || 0, m, 'manual' + (t.sheets.length > 1 ? ', hoja «' + t.sheets[t.si].name + '»' : ''), t.sheets);
   });
   const cd = $('#chkDif'); if (cd) cd.onchange = ev => { UI.soloDif = ev.target.checked; render(); };
   const br = $('#bRep'); if (br) br.onclick = () => reporteValidacion(UI.emp);
