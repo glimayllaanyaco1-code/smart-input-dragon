@@ -262,9 +262,10 @@ const Store = {
   },
   async reset() {
     for (const e of EMPS) {
-      if (this.api) { try { await this.req('PUT', 'cierre/' + e.id + '?per=' + PER, {}); } catch (x) { toast(x.message, 'bad'); } }
-      else if (this.mode === 'db' && !this.local) { try { await this.db.doc('cierres/' + PER + '-' + e.id).set({}); } catch (x) { } }
-      this.docs[e.id] = {}; try { localStorage.removeItem('sid2:' + PER + ':' + e.id); } catch (x) { }
+      const keep = this.get(e.id).maestro ? { maestro: this.get(e.id).maestro } : {};
+      if (this.api) { try { await this.req('PUT', 'cierre/' + e.id + '?per=' + PER, keep); } catch (x) { toast(x.message, 'bad'); } }
+      else if (this.mode === 'db' && !this.local) { try { await this.db.doc('cierres/' + PER + '-' + e.id).set(keep); } catch (x) { } }
+      this.docs[e.id] = keep; try { localStorage.setItem('sid2:' + PER + ':' + e.id, JSON.stringify(keep)); } catch (x) { }
     }
   },
   modoTxt() { return this.api ? '● Datos compartidos en el servidor: lo que envía el cliente le llega al administrador desde cualquier equipo (se actualiza cada 15 s).' : this.mode === 'db' && !this.local ? '● Datos compartidos: lo que envía el cliente aparece aquí en vivo.' : '⚠ Modo local: los datos se guardan solo en este navegador.'; }
@@ -299,10 +300,16 @@ let UI = { tab: 'tablero', emp: 'ALFA', soloDif: true, grid: null, gridDirty: fa
    PORTAL DEL CLIENTE
    ===================================================================== */
 function filaBase(w) { return { dni: w.dni, ficha: w.ficha, nombre: w.nombre, dias: 30, faltas: 0, vac: 0, dm: 0, he25: 0, he35: 0, bono: 0, mov: 0, movimiento: '', fecha: '', sueldo: w.sueldo || '', asig: w.asigFam || 0, obs: '' }; }
+/* trabajadores activos para precargar el formato: el maestro; si no hay, los últimos enviados (sin las bajas) */
+function activosDe(empId) {
+  const M = maestroDe(empId); if (M.length) return M;
+  const nov = Store.get(empId).novedades;
+  return nov ? nov.rows.filter(r => r.movimiento !== 'BAJA').map(r => ({ dni: r.dni, ficha: r.ficha || r.dni, nombre: r.nombre, sueldo: r.sueldo, asigFam: r.asig || 0 })) : [];
+}
 function gridInicial(empId) {
   const d = Store.get(empId);
   if (d.novedades && d.novedades.rows) return JSON.parse(JSON.stringify(d.novedades.rows));
-  return maestroDe(empId).map(filaBase);
+  return activosDe(empId).map(filaBase);
 }
 function parseFecha(v) {
   if (typeof v === 'number' && v > 20000 && v < 80000) { const d = XLSX.SSF.parse_date_code(v); return String(d.d).padStart(2, '0') + '/' + String(d.m).padStart(2, '0') + '/' + d.y; }
@@ -417,7 +424,7 @@ function bajarFormato() {
   const head = { es: ['Número de Documento', 'Código de Ficha', 'Apellidos y Nombres', 'Días laborados', 'Faltas (días)', 'Vacaciones (días)', 'Descanso médico (días)', 'Horas extras 25% (horas)', 'Horas extras 35% (horas)', 'Bono (S/)', 'Movilidad (S/)', 'Movimiento (Alta/Baja)', 'Fecha de movimiento (dd/mm/aaaa)', 'Sueldo (S/)', 'Asignación familiar (S/)', 'Observaciones'],
     en: ['Document Number', 'Employee Code', 'Full Name', 'Days worked', 'Absences (days)', 'Vacation days', 'Medical leave days', 'Overtime 25% (hours)', 'Overtime 35% (hours)', 'Bonus (S/)', 'Transport allowance (S/)', 'Movement (Hire/Termination)', 'Movement date (dd/mm/yyyy)', 'Salary (S/)', 'Family allowance (S/)', 'Comments'],
     zh: ['证件号码', '员工编号', '姓名', '出勤天数', '缺勤（天）', '休假（天）', '病假（天）', '加班25%（小时）', '加班35%（小时）', '奖金（S/）', '交通补贴（S/）', '人事变动（入职/离职）', '变动日期（日/月/年）', '月薪（S/）', '家庭津贴（S/）', '备注'] }[lang];
-  const rows = maestroDe(empId).map(w => [w.dni, w.ficha, w.nombre, '', 0, 0, 0, 0, 0, 0, 0, '', '', w.sueldo || '', w.asigFam || 0, '']);
+  const rows = activosDe(empId).map(w => [w.dni, w.ficha, w.nombre, 30, 0, 0, 0, 0, 0, 0, 0, '', '', w.sueldo || '', w.asigFam || 0, '']);
   const ws = sheet([head, ...rows], [16, 12, 30, 12, 12, 12, 14, 14, 14, 10, 14, 18, 20, 12, 14, 26]); textCol(ws, 0, 1);
   const ins = {
     es: [['Instrucciones — ' + e.nombre + ' — periodo ' + PER], [], ['1. No cambies los encabezados. Una fila por trabajador.'], ['2. Obligatorios: N.° de documento y Días laborados (0 a 30). Días + faltas + vacaciones + descanso médico no pueden superar 30.'], ['3. Horas extras en horas; bono y movilidad en soles.'], ['4. Movimiento: escribe Alta (ingreso) o Baja (cese) y la fecha en formato dd/mm/aaaa dentro del periodo.'], ['5. Para un ingreso, agrega una fila con DNI, nombre, Alta, fecha y sueldo (no menor a S/ 1,230).'], ['6. Si falta un dato obligatorio o una fecha está mal escrita, el portal rechazará el archivo.']],
@@ -493,7 +500,9 @@ function procesar(id) {
   const nov = Store.get(id).novedades; if (!nov) return;
   UI.base = null;
   const lineas = comprobantes(id);
-  Store.save(id, { procesado: { fecha: nowTxt(), version: nov.version, lineas } }).then(ok => ok && toast(`✓ Novedades procesadas: ${lineas.length} líneas para Comprobantes Históricos`, 'ok'));
+  const patch = { procesado: { fecha: nowTxt(), version: nov.version, lineas } };
+  if (!maestroDe(id).length) patch.maestro = { rows: nov.rows.filter(r => r.movimiento !== 'BAJA').map(r => ({ dni: r.dni, ficha: r.ficha || r.dni, nombre: r.nombre, cargo: '', sueldo: Number(r.sueldo) || 0, asigFam: Number(r.asig) || 0, regimen: 'ONP', ingreso: r.movimiento === 'ALTA' ? r.fecha : '' })), archivo: 'novedades del cliente', fecha: nowTxt() };
+  Store.save(id, patch).then(ok => ok && toast(`✓ Novedades procesadas: ${lineas.length} líneas para Comprobantes Históricos`, 'ok'));
 }
 async function bajarComprobantes(empId) {
   const d = Store.get(empId); if (!d.procesado || d.procesado.version !== d.novedades.version) return toast('Primero procesa las novedades.', 'bad');
@@ -781,7 +790,7 @@ function vTablero() {
       <div class="kpi ${tot.some(x => x.X && !x.X.ok100) ? 'kbad' : ''}"><div class="kt">Netos por analizar</div><div class="kv">${tot.reduce((s, x) => s + (x.X ? x.X.obs : 0), 0)}</div><div class="ks">${k(x => x.X)} empresas validadas</div></div>
       <div class="kpi ${k(x => x.d.aprob) === EMPS.length ? 'kok' : ''}"><div class="kt">Emisión autorizada</div><div class="kv">${k(x => x.d.aprob)}/${EMPS.length}</div><div class="ks">solo con 100 % cuadrado</div></div></div>
       <div class="row gap mt small muted">${Store.modoTxt()}${Store.api ? ' <button class="lnk" id="bRefresh">Actualizar ahora</button>' : ''}<span class="sp"></span><button class="lnk" id="bReset">Reiniciar cierre de prueba</button></div>
-      <div id="resetBox" class="hidden mt"><div class="banner bad">¿Borrar novedades, reportes y autorizaciones de las 3 empresas? <button class="btn" id="bResetOk">Sí, reiniciar</button> <button class="btn" id="bResetNo">Cancelar</button></div></div></section>
+      <div id="resetBox" class="hidden mt"><div class="banner bad">¿Borrar novedades, reportes y autorizaciones de las 3 empresas? (La lista de trabajadores de cada cliente se conserva.) <button class="btn" id="bResetOk">Sí, reiniciar</button> <button class="btn" id="bResetNo">Cancelar</button></div></div></section>
     <div class="ecards">${cards}</div>`;
 }
 function selEmp() { return `<label>Empresa <select id="selEmp">${EMPS.map(e => `<option value="${e.id}" ${e.id === UI.emp ? 'selected' : ''}>${esc(e.nombre)}</option>`).join('')}</select></label>`; }
