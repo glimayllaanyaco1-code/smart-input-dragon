@@ -129,12 +129,12 @@ const TX = {
     enviar: 'Enviar novedades', enviado: 'Novedades enviadas', pendiente: 'Aún no has enviado las novedades de este periodo.', bloqueado: 'La emisión de este periodo ya fue autorizada. Las novedades están cerradas.',
     rechazado: 'Archivo rechazado', rechazadoD: 'Corrige estos puntos en tu archivo y vuelve a subirlo. No se guardó nada.', aceptado: 'Archivo validado. Revisa la tabla y pulsa «Enviar novedades».',
     fila: 'Fila', campo: 'Campo', problema: 'Problema', errores: 'errores', listo: 'Todo conforme', quitar: 'Quitar',
-    c: ['N.° documento', 'Ficha', 'Apellidos y nombres', 'Días laborados', 'Faltas (días)', 'Vacaciones (días)', 'Descanso médico (días)', 'HE 25 % (h)', 'HE 35 % (h)', 'Bono (S/)', 'Movilidad (S/)', 'Movimiento', 'Fecha (dd/mm/aaaa)', 'Sueldo (altas)', 'Observaciones'],
+    c: ['N.° documento', 'Ficha', 'Apellidos y nombres', 'Días laborados', 'Faltas (días)', 'Vacaciones (días)', 'Descanso médico (días)', 'HE 25 % (h)', 'HE 35 % (h)', 'Bono (S/)', 'Movilidad (S/)', 'Movimiento', 'Fecha (dd/mm/aaaa)', 'Sueldo (S/)', 'Asig. familiar (S/)', 'Observaciones'],
     movs: ['', 'Alta', 'Baja'], porVersion: 'versión', enviadoPor: 'por',
     e: { req: 'Dato obligatorio', dni: 'El DNI debe tener 8 dígitos (CE: 9 a 12)', noMaestro: 'No figura en tu planilla. Si es un ingreso, marca «Alta»', yaExiste: 'Ya figura en la planilla: no puede ser alta', ficha: 'La ficha no corresponde al documento',
       dias: 'Entero entre 0 y 30', faltas: 'Entero entre 0 y 30', suma: 'Días laborados + faltas + vacaciones + descanso médico supera 30', num: 'Número mayor o igual a 0', he: 'Máximo 100 horas',
       fecha: 'Formato de fecha incorrecto: usa dd/mm/aaaa', fechaPer: 'La fecha debe estar en el periodo ' + PER, fechaSin: 'Hay fecha pero no indicaste Alta o Baja', fechaReq: 'Indica la fecha del movimiento',
-      sueldo: 'Sueldo obligatorio y no menor a la RMV (S/ 1,230)', diasBaja: 'Los días laborados superan la fecha de cese', dup: 'Documento repetido', falta: 'Falta este trabajador en el archivo', cols: 'Faltan columnas obligatorias: ', vacio: 'El archivo no tiene filas', mov: 'Usa Alta o Baja' } },
+      sueldo: 'Sueldo mensual obligatorio y no menor a la RMV (S/ 1,230)', diasBaja: 'Los días laborados superan la fecha de cese', dup: 'Documento repetido', falta: 'Falta este trabajador en el archivo', cols: 'Faltan columnas obligatorias: ', vacio: 'El archivo no tiene filas', mov: 'Usa Alta o Baja' } },
   en: { sub: 'Payroll automation ecosystem', login: 'Sign in', usuario: 'User', clave: 'Password', entrar: 'Sign in', salir: 'Sign out', badLogin: 'Wrong user or password.',
     periodo: 'Period', paso1: '1. Download the template', paso1d: 'Standard template with your employees, in the language you choose.', bajar: 'Download template (.xlsx)',
     paso2: '2. Enter your payroll changes', paso2d: 'Fill in attendance, overtime, bonuses and hires/terminations. Type here or upload the completed template.', agregarAlta: '+ Add hire',
@@ -142,12 +142,12 @@ const TX = {
     enviar: 'Submit changes', enviado: 'Changes submitted', pendiente: 'You have not submitted this period’s changes yet.', bloqueado: 'Payslips for this period are already approved. Changes are closed.',
     rechazado: 'File rejected', rechazadoD: 'Fix these points in your file and upload it again. Nothing was saved.', aceptado: 'File validated. Check the table and click “Submit changes”.',
     fila: 'Row', campo: 'Field', problema: 'Issue', errores: 'errors', listo: 'All good', quitar: 'Remove',
-    c: ['Document no.', 'Code', 'Full name', 'Days worked', 'Absences (days)', 'Vacation (days)', 'Medical leave (days)', 'OT 25 % (h)', 'OT 35 % (h)', 'Bonus (S/)', 'Transport (S/)', 'Movement', 'Date (dd/mm/yyyy)', 'Salary (hires)', 'Comments'],
+    c: ['Document no.', 'Code', 'Full name', 'Days worked', 'Absences (days)', 'Vacation (days)', 'Medical leave (days)', 'OT 25 % (h)', 'OT 35 % (h)', 'Bonus (S/)', 'Transport (S/)', 'Movement', 'Date (dd/mm/yyyy)', 'Salary (S/)', 'Family allowance (S/)', 'Comments'],
     movs: ['', 'Hire', 'Termination'], porVersion: 'version', enviadoPor: 'by',
     e: { req: 'Required field', dni: 'DNI must have 8 digits (CE: 9 to 12)', noMaestro: 'Not on your payroll. If it is a new employee, choose “Hire”', yaExiste: 'Already on payroll: cannot be a hire', ficha: 'Code does not match the document',
       dias: 'Whole number from 0 to 30', faltas: 'Whole number from 0 to 30', suma: 'Days worked + absences + vacation + medical leave exceeds 30', num: 'Number ≥ 0', he: 'Max 100 hours',
       fecha: 'Wrong date format: use dd/mm/yyyy', fechaPer: 'Date must be within period ' + PER, fechaSin: 'There is a date but no Hire/Termination', fechaReq: 'Enter the movement date',
-      sueldo: 'Salary required and not below minimum wage (S/ 1,230)', diasBaja: 'Days worked exceed the termination date', dup: 'Duplicated document', falta: 'This employee is missing from the file', cols: 'Missing required columns: ', vacio: 'The file has no rows', mov: 'Use Hire or Termination' } },
+      sueldo: 'Monthly salary required and not below minimum wage (S/ 1,230)', diasBaja: 'Days worked exceed the termination date', dup: 'Duplicated document', falta: 'This employee is missing from the file', cols: 'Missing required columns: ', vacio: 'The file has no rows', mov: 'Use Hire or Termination' } },
   zh: { sub: '薪资自动化系统', login: '登录', usuario: '用户名', clave: '密码', entrar: '登录', salir: '退出', badLogin: '用户名或密码错误。',
     periodo: '期间', paso1: '1. 下载模板', paso1d: '标准化模板，已包含贵公司员工，语言可选。', bajar: '下载模板 (.xlsx)',
     paso2: '2. 填写薪资变动', paso2d: '填写出勤、加班、奖金及入职/离职。可在此直接填写，或上传填好的模板。', agregarAlta: '+ 新增入职',
@@ -155,7 +155,7 @@ const TX = {
     enviar: '提交变动', enviado: '变动已提交', pendiente: '本期变动尚未提交。', bloqueado: '本期工资单已批准发放，变动已关闭。',
     rechazado: '文件被拒绝', rechazadoD: '请修改以下问题后重新上传。未保存任何内容。', aceptado: '文件验证通过。请核对表格并点击“提交变动”。',
     fila: '行', campo: '字段', problema: '问题', errores: '个错误', listo: '全部正确', quitar: '删除',
-    c: ['证件号码', '员工编号', '姓名', '出勤天数', '缺勤（天）', '休假（天）', '病假（天）', '加班25%（小时）', '加班35%（小时）', '奖金（S/）', '交通补贴（S/）', '人事变动', '日期（日/月/年）', '月薪（入职）', '备注'],
+    c: ['证件号码', '员工编号', '姓名', '出勤天数', '缺勤（天）', '休假（天）', '病假（天）', '加班25%（小时）', '加班35%（小时）', '奖金（S/）', '交通补贴（S/）', '人事变动', '日期（日/月/年）', '月薪（S/）', '家庭津贴（S/）', '备注'],
     movs: ['', '入职', '离职'], porVersion: '版本', enviadoPor: '提交人',
     e: { req: '必填项', dni: 'DNI须为8位数字（CE为9–12位）', noMaestro: '不在贵公司员工名单中；如为新员工请选择“入职”', yaExiste: '已在名单中，不能登记入职', ficha: '员工编号与证件不符',
       dias: '0至30的整数', faltas: '0至30的整数', suma: '出勤+缺勤+休假+病假超过30天', num: '须为≥0的数字', he: '最多100小时',
@@ -164,7 +164,7 @@ const TX = {
 };
 let lang = 'es';
 const T = () => TX[lang];
-const FIELDS = ['dni', 'ficha', 'nombre', 'dias', 'faltas', 'vac', 'dm', 'he25', 'he35', 'bono', 'mov', 'movimiento', 'fecha', 'sueldo', 'obs'];
+const FIELDS = ['dni', 'ficha', 'nombre', 'dias', 'faltas', 'vac', 'dm', 'he25', 'he35', 'bono', 'mov', 'movimiento', 'fecha', 'sueldo', 'asig', 'obs'];
 
 /* ---------------- utilidades ---------------- */
 const $ = s => document.querySelector(s);
@@ -291,7 +291,7 @@ let UI = { tab: 'tablero', emp: 'ALFA', soloDif: true, grid: null, gridDirty: fa
 /* =====================================================================
    PORTAL DEL CLIENTE
    ===================================================================== */
-function filaBase(w) { return { dni: w.dni, ficha: w.ficha, nombre: w.nombre, dias: 30, faltas: 0, vac: 0, dm: 0, he25: 0, he35: 0, bono: 0, mov: 0, movimiento: '', fecha: '', sueldo: '', obs: '' }; }
+function filaBase(w) { return { dni: w.dni, ficha: w.ficha, nombre: w.nombre, dias: 30, faltas: 0, vac: 0, dm: 0, he25: 0, he35: 0, bono: 0, mov: 0, movimiento: '', fecha: '', sueldo: w.sueldo || '', asig: w.asigFam || 0, obs: '' }; }
 function gridInicial(empId) {
   const d = Store.get(empId);
   if (d.novedades && d.novedades.rows) return JSON.parse(JSON.stringify(d.novedades.rows));
@@ -338,7 +338,8 @@ function validarNov(rows, empId, fileLevel) {
         else if (baja && Number.isInteger(dias) && dias > +m[1]) add(i, 'dias', e.diasBaja);
       }
     } else if (f) add(i, 'fecha', e.fechaSin);
-    if (alta) { const s = num(r.sueldo); if (s === '' || isNaN(s) || s < RMV) add(i, 'sueldo', e.sueldo); }
+    if (alta || !hasM || r.sueldo !== '') { const s = num(r.sueldo); if ((alta || !hasM) && (s === '' || isNaN(s) || s < RMV)) add(i, 'sueldo', e.sueldo); else if (s !== '' && (isNaN(s) || s < 0)) add(i, 'sueldo', e.num); }
+    { const a = num(r.asig === undefined ? '' : r.asig); if (a !== '' && (isNaN(a) || a < 0)) add(i, 'asig', e.num); }
   });
   const global = [];
   if (hasM && fileLevel) maestro.forEach(w => { if (!rows.some(r => String(r.dni).trim() === w.dni)) global.push({ fila: '—', campo: 'dni', msg: e.falta + ': ' + w.dni + ' ' + w.nombre }); });
@@ -360,7 +361,8 @@ const NOVALIAS = {
   mov: ['movilidads', 'transportallowances', '交通补贴s', 'movilidad'],
   movimiento: ['movimientoaltabaja', 'movementhiretermination', '人事变动入职离职', 'movimiento', 'movement'],
   fecha: ['fechademovimientoddmmaaaa', 'movementdateddmmyyyy', '变动日期日月年', 'fechademovimiento', 'movementdate'],
-  sueldo: ['sueldosoloaltas', 'salaryhiresonly', '月薪仅入职', 'sueldo', 'salary'],
+  sueldo: ['sueldos', 'sueldomensuals', 'salarys', 'monthlysalarys', '月薪s', 'sueldosoloaltas', 'salaryhiresonly', '月薪仅入职', 'sueldo', 'salary', 'sueldobase', 'basesalary', 'monthlysalary', '月薪'],
+  asig: ['asignacionfamiliars', 'familyallowances', '家庭津贴s', 'asignacionfamiliar', 'familyallowance', '家庭津贴'],
   obs: ['observaciones', 'comments', '备注']
 };
 const REQCOLS = ['dni', 'dias', 'faltas', 'he25', 'he35', 'movimiento', 'fecha'];
@@ -390,7 +392,7 @@ function onUploadNov(file) {
       o.dni = String(o.dni ?? '').trim(); if (/^\d{7}$/.test(o.dni)) o.dni = o.dni.padStart(8, '0');
       o.ficha = String(o.ficha ?? '').trim(); o.fecha = parseFecha(o.fecha);
       const mv = norm(o.movimiento); o.movimiento = mv ? (MOVALIAS[mv] || '#INVALID') : '';
-      ['dias', 'faltas', 'vac', 'dm', 'he25', 'he35', 'bono', 'mov', 'sueldo'].forEach(k => { const v = num(o[k]); o[k] = (k !== 'dias' && k !== 'sueldo') && v === '' ? 0 : v; });
+      ['dias', 'faltas', 'vac', 'dm', 'he25', 'he35', 'bono', 'mov', 'sueldo', 'asig'].forEach(k => { const v = num(o[k]); o[k] = (k !== 'dias' && k !== 'sueldo') && v === '' ? 0 : v; });
       o.nombre = String(o.nombre ?? ''); o.obs = String(o.obs ?? '');
       return o;
     });
@@ -405,11 +407,11 @@ function onUploadNov(file) {
 }
 function bajarFormato() {
   const empId = SES.emp, e = EMP[empId], t = T();
-  const head = { es: ['Número de Documento', 'Código de Ficha', 'Apellidos y Nombres', 'Días laborados', 'Faltas (días)', 'Vacaciones (días)', 'Descanso médico (días)', 'Horas extras 25% (horas)', 'Horas extras 35% (horas)', 'Bono (S/)', 'Movilidad (S/)', 'Movimiento (Alta/Baja)', 'Fecha de movimiento (dd/mm/aaaa)', 'Sueldo (solo altas)', 'Observaciones'],
-    en: ['Document Number', 'Employee Code', 'Full Name', 'Days worked', 'Absences (days)', 'Vacation days', 'Medical leave days', 'Overtime 25% (hours)', 'Overtime 35% (hours)', 'Bonus (S/)', 'Transport allowance (S/)', 'Movement (Hire/Termination)', 'Movement date (dd/mm/yyyy)', 'Salary (hires only)', 'Comments'],
-    zh: ['证件号码', '员工编号', '姓名', '出勤天数', '缺勤（天）', '休假（天）', '病假（天）', '加班25%（小时）', '加班35%（小时）', '奖金（S/）', '交通补贴（S/）', '人事变动（入职/离职）', '变动日期（日/月/年）', '月薪（仅入职）', '备注'] }[lang];
-  const rows = maestroDe(empId).map(w => [w.dni, w.ficha, w.nombre, '', 0, 0, 0, 0, 0, 0, 0, '', '', '', '']);
-  const ws = sheet([head, ...rows], [16, 12, 30, 12, 12, 12, 14, 14, 14, 10, 14, 18, 20, 14, 26]); textCol(ws, 0, 1);
+  const head = { es: ['Número de Documento', 'Código de Ficha', 'Apellidos y Nombres', 'Días laborados', 'Faltas (días)', 'Vacaciones (días)', 'Descanso médico (días)', 'Horas extras 25% (horas)', 'Horas extras 35% (horas)', 'Bono (S/)', 'Movilidad (S/)', 'Movimiento (Alta/Baja)', 'Fecha de movimiento (dd/mm/aaaa)', 'Sueldo (S/)', 'Asignación familiar (S/)', 'Observaciones'],
+    en: ['Document Number', 'Employee Code', 'Full Name', 'Days worked', 'Absences (days)', 'Vacation days', 'Medical leave days', 'Overtime 25% (hours)', 'Overtime 35% (hours)', 'Bonus (S/)', 'Transport allowance (S/)', 'Movement (Hire/Termination)', 'Movement date (dd/mm/yyyy)', 'Salary (S/)', 'Family allowance (S/)', 'Comments'],
+    zh: ['证件号码', '员工编号', '姓名', '出勤天数', '缺勤（天）', '休假（天）', '病假（天）', '加班25%（小时）', '加班35%（小时）', '奖金（S/）', '交通补贴（S/）', '人事变动（入职/离职）', '变动日期（日/月/年）', '月薪（S/）', '家庭津贴（S/）', '备注'] }[lang];
+  const rows = maestroDe(empId).map(w => [w.dni, w.ficha, w.nombre, '', 0, 0, 0, 0, 0, 0, 0, '', '', w.sueldo || '', w.asigFam || 0, '']);
+  const ws = sheet([head, ...rows], [16, 12, 30, 12, 12, 12, 14, 14, 14, 10, 14, 18, 20, 12, 14, 26]); textCol(ws, 0, 1);
   const ins = {
     es: [['Instrucciones — ' + e.nombre + ' — periodo ' + PER], [], ['1. No cambies los encabezados. Una fila por trabajador.'], ['2. Obligatorios: N.° de documento y Días laborados (0 a 30). Días + faltas + vacaciones + descanso médico no pueden superar 30.'], ['3. Horas extras en horas; bono y movilidad en soles.'], ['4. Movimiento: escribe Alta (ingreso) o Baja (cese) y la fecha en formato dd/mm/aaaa dentro del periodo.'], ['5. Para un ingreso, agrega una fila con DNI, nombre, Alta, fecha y sueldo (no menor a S/ 1,230).'], ['6. Si falta un dato obligatorio o una fecha está mal escrita, el portal rechazará el archivo.']],
     en: [['Instructions — ' + e.nombre + ' — period ' + PER], [], ['1. Do not change the headers. One row per employee.'], ['2. Required: Document number and Days worked (0 to 30). Days + absences + vacation + medical leave cannot exceed 30.'], ['3. Overtime in hours; bonus and transport in soles.'], ['4. Movement: type Hire or Termination and the date as dd/mm/yyyy within the period.'], ['5. For a new hire, add a row with DNI, name, Hire, date and salary (not below S/ 1,230).'], ['6. If a required field is missing or a date is wrong, the portal will reject the file.']],
@@ -434,7 +436,7 @@ function vCliente() {
   const cell = (r, i, k, type = 'text', w = '') => {
     const bad = v.porFila[i].some(x => x.campo === k);
     if (k === 'movimiento') return `<td><select data-i="${i}" data-k="${k}" ${bloq ? 'disabled' : ''} class="${bad ? 'ibad' : ''}">${['', 'ALTA', 'BAJA'].map((m, j) => `<option value="${m}" ${r.movimiento === m ? 'selected' : ''}>${t.movs[j] || '—'}</option>`).join('')}</select></td>`;
-    const ro = bloq || ((k === 'dni' || k === 'ficha' || k === 'nombre') && r.movimiento !== 'ALTA' && maestroDe(SES.emp).some(w => w.dni === r.dni)) || (k === 'sueldo' && r.movimiento !== 'ALTA');
+    const ro = bloq || ((k === 'dni' || k === 'ficha' || k === 'nombre') && r.movimiento !== 'ALTA' && maestroDe(SES.emp).some(w => w.dni === r.dni));
     return `<td><input data-i="${i}" data-k="${k}" value="${esc(r[k])}" ${ro ? 'readonly tabindex="-1"' : ''} class="${bad ? 'ibad' : ''} ${ro ? 'iro' : ''} ${w}" ${type === 'num' ? 'inputmode="decimal"' : ''}></td>`;
   };
   const errLines = v.global.map(x => `<li>${esc(x.msg)}</li>`).join('') + v.porFila.map((l, i) => l.map(x => `<li><b>${t.fila} ${i + 1}</b> · ${esc(t.c[FIELDS.indexOf(x.campo)])}: ${esc(x.msg)}</li>`).join('')).join('');
@@ -450,7 +452,7 @@ function vCliente() {
   <section class="card"><div class="row wrap gap between"><div><h3>${t.paso2}</h3><p class="small muted">${t.paso2d}</p></div>
     <div class="row gap">${bloq ? '' : `<button class="btn" id="bAlta">${sinMaestro ? (lang === 'en' ? '+ Add employee' : lang === 'zh' ? '+ 新增员工' : '+ Agregar trabajador') : t.agregarAlta}</button>`}<button class="btn go" id="bEnviar" ${bloq || v.total ? 'disabled' : ''}>✓ ${t.enviar}</button></div></div>
     <div class="tablewrap mt"><table class="grid form"><thead><tr>${t.c.map(h => `<th>${esc(h)}</th>`).join('')}<th></th></tr></thead><tbody>
-    ${UI.grid.map((r, i) => `<tr class="${v.porFila[i].length ? 'rbad' : ''}">${cell(r, i, 'dni', 'text', 'w9')}${cell(r, i, 'ficha', 'text', 'w6')}${cell(r, i, 'nombre', 'text', 'w14')}${cell(r, i, 'dias', 'num', 'w4')}${cell(r, i, 'faltas', 'num', 'w4')}${cell(r, i, 'vac', 'num', 'w4')}${cell(r, i, 'dm', 'num', 'w4')}${cell(r, i, 'he25', 'num', 'w4')}${cell(r, i, 'he35', 'num', 'w4')}${cell(r, i, 'bono', 'num', 'w6')}${cell(r, i, 'mov', 'num', 'w6')}${cell(r, i, 'movimiento')}${cell(r, i, 'fecha', 'text', 'w8')}${cell(r, i, 'sueldo', 'num', 'w6')}${cell(r, i, 'obs', 'text', 'w12')}
+    ${UI.grid.map((r, i) => `<tr class="${v.porFila[i].length ? 'rbad' : ''}">${cell(r, i, 'dni', 'text', 'w9')}${cell(r, i, 'ficha', 'text', 'w6')}${cell(r, i, 'nombre', 'text', 'w14')}${cell(r, i, 'dias', 'num', 'w4')}${cell(r, i, 'faltas', 'num', 'w4')}${cell(r, i, 'vac', 'num', 'w4')}${cell(r, i, 'dm', 'num', 'w4')}${cell(r, i, 'he25', 'num', 'w4')}${cell(r, i, 'he35', 'num', 'w4')}${cell(r, i, 'bono', 'num', 'w6')}${cell(r, i, 'mov', 'num', 'w6')}${cell(r, i, 'movimiento')}${cell(r, i, 'fecha', 'text', 'w8')}${cell(r, i, 'sueldo', 'num', 'w6')}${cell(r, i, 'asig', 'num', 'w6')}${cell(r, i, 'obs', 'text', 'w12')}
       <td>${!bloq && !maestroDe(SES.emp).some(w => w.dni === r.dni && r.movimiento !== 'ALTA') ? `<button class="lnk" data-del="${i}">${t.quitar}</button>` : ''}</td></tr>`).join('')}
     </tbody></table></div>
     <div class="mt">${v.total ? `<div class="banner bad">${v.total} ${t.errores}</div><ul class="errlist">${errLines}</ul>` : `<div class="banner ok">✓ ${t.listo}</div>`}</div>
@@ -462,7 +464,7 @@ function vCliente() {
    ===================================================================== */
 function montos(r, empId) {
   const w = maestroDe(empId).find(x => x.dni === r.dni);
-  const sueldo = w ? w.sueldo : Number(r.sueldo) || 0, asig = w ? w.asigFam : 0;
+  const sueldo = Number(r.sueldo) > 0 ? Number(r.sueldo) : (w ? w.sueldo : 0), asig = r.asig !== undefined && r.asig !== '' ? Number(r.asig) || 0 : (w ? w.asigFam : 0);
   const vh = (sueldo + asig) / 240;
   return { h25: r2(vh * 1.25 * (Number(r.he25) || 0)), h35: r2(vh * 1.35 * (Number(r.he35) || 0)), bono: r2(Number(r.bono) || 0), mov: r2(Number(r.mov) || 0), falt: r2(sueldo / 30 * (Number(r.faltas) || 0)), vac: r2((sueldo + asig) / 30 * (Number(r.vac) || 0)), dm: r2((sueldo + asig) / 30 * (Number(r.dm) || 0)), ficha: w ? w.ficha : '' };
 }
@@ -482,7 +484,6 @@ function comprobantes(empId) {
 }
 function procesar(id) {
   const nov = Store.get(id).novedades; if (!nov) return;
-  if (sinSueldo(id).length) { UI.base = id; render(); return; }
   UI.base = null;
   const lineas = comprobantes(id);
   Store.save(id, { procesado: { fecha: nowTxt(), version: nov.version, lineas } }).then(ok => ok && toast(`✓ Novedades procesadas: ${lineas.length} líneas para Comprobantes Históricos`, 'ok'));
@@ -496,8 +497,8 @@ async function bajarComprobantes(empId) {
 }
 function bajarNovCliente(empId) {
   const nov = Store.get(empId).novedades; if (!nov) return;
-  const aoa = [['Número de Documento', 'Código de Ficha', 'Apellidos y Nombres', 'Días laborados', 'Faltas (días)', 'Vacaciones (días)', 'Descanso médico (días)', 'HE 25% (horas)', 'HE 35% (horas)', 'Bono (S/)', 'Movilidad (S/)', 'Movimiento', 'Fecha movimiento', 'Sueldo (altas)', 'Observaciones', 'HE 25% (S/)', 'HE 35% (S/)', 'Vacaciones (S/)', 'Descanso médico (S/)', 'Desc. inasistencias (S/)']];
-  nov.rows.forEach(r => { const m = montos(r, empId); aoa.push([r.dni, r.ficha || m.ficha, r.nombre, r.dias, r.faltas, r.vac || 0, r.dm || 0, r.he25, r.he35, r.bono, r.mov, r.movimiento, r.fecha, r.sueldo, r.obs, m.h25, m.h35, m.vac, m.dm, m.falt]); });
+  const aoa = [['Número de Documento', 'Código de Ficha', 'Apellidos y Nombres', 'Días laborados', 'Faltas (días)', 'Vacaciones (días)', 'Descanso médico (días)', 'HE 25% (horas)', 'HE 35% (horas)', 'Bono (S/)', 'Movilidad (S/)', 'Movimiento', 'Fecha movimiento', 'Sueldo (S/)', 'Asig. familiar (S/)', 'Observaciones', 'HE 25% (S/)', 'HE 35% (S/)', 'Vacaciones (S/)', 'Descanso médico (S/)', 'Desc. inasistencias (S/)']];
+  nov.rows.forEach(r => { const m = montos(r, empId); aoa.push([r.dni, r.ficha || m.ficha, r.nombre, r.dias, r.faltas, r.vac || 0, r.dm || 0, r.he25, r.he35, r.bono, r.mov, r.movimiento, r.fecha, r.sueldo, r.asig ?? '', r.obs, m.h25, m.h35, m.vac, m.dm, m.falt]); });
   const ws = sheet(aoa, [16, 10, 28, 10, 10, 10, 10, 10, 10, 10, 10, 10, 14, 10, 22, 12, 12, 12, 12, 14]); textCol(ws, 0, 1);
   const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, 'Novedades');
   const movs = nov.rows.filter(r => r.movimiento);
@@ -671,7 +672,7 @@ function cruce(id) {
     const diff = r2(b.neto - p.neto), ad = Math.round(Math.abs(diff) * 100);
     return { dni, nombre, b: b.neto, p: p.neto, d: diff, est: ad === 0 ? 'CUADRA' : ad <= 1 ? 'REDONDEO' : 'ANALIZAR',
       di: b.ing !== null && p.ing !== null ? r2(b.ing - p.ing) : null, dd: b.desc !== null && p.desc !== null ? r2(b.desc - p.desc) : null };
-  }).sort((a, b) => ({ ANALIZAR: 0, FALTA_PLAME: 1, FALTA_BUK: 1, REDONDEO: 2, CUADRA: 3 }[a.est] - { ANALIZAR: 0, FALTA_PLAME: 1, FALTA_BUK: 1, REDONDEO: 2, CUADRA: 3 }[b.est]));
+  }).sort((a, b) => ({ ANALIZAR: 0, FALTA_PLAME: 1, FALTA_BUK: 1, REDONDEO: 2, CUADRA: 3 }[a.est] - { ANALIZAR: 0, FALTA_PLAME: 1, FALTA_BUK: 1, REDONDEO: 2, CUADRA: 3 }[b.est]) || String(a.nombre).localeCompare(String(b.nombre), 'es', { numeric: true }));
   const c = k => rows.filter(r => r.est === k).length;
   const tb = r2(d.buk.rows.reduce((s, r) => s + r.neto, 0)), tp = r2(d.plame.rows.reduce((s, r) => s + r.neto, 0));
   const obs = c('ANALIZAR') + c('FALTA_BUK') + c('FALTA_PLAME');
@@ -823,7 +824,7 @@ function bind() {
   const bf = $('#bFormato'); if (bf) bf.onclick = bajarFormato;
   const fn = $('#fNov'); if (fn) fn.onchange = ev => { if (ev.target.files[0]) onUploadNov(ev.target.files[0]); ev.target.value = ''; };
   document.querySelectorAll('table.form input, table.form select').forEach(el => {
-    const h = () => { const r = UI.grid[+el.dataset.i]; const k = el.dataset.k; let v = el.value; if (['dias', 'faltas', 'vac', 'dm', 'he25', 'he35', 'bono', 'mov', 'sueldo'].includes(k)) v = num(v); if (k === 'dni') v = String(v).trim(); if (r[k] !== v) { r[k] = v; UI.gridDirty = true; } };
+    const h = () => { const r = UI.grid[+el.dataset.i]; const k = el.dataset.k; let v = el.value; if (['dias', 'faltas', 'vac', 'dm', 'he25', 'he35', 'bono', 'mov', 'sueldo', 'asig'].includes(k)) v = num(v); if (k === 'dni') v = String(v).trim(); if (r[k] !== v) { r[k] = v; UI.gridDirty = true; } };
     if (el.tagName === 'SELECT') el.onchange = () => { h(); render(); }; else { el.oninput = h; el.onchange = () => { h(); render(); }; el.onkeydown = ev => { if (ev.key === 'Enter') { ev.preventDefault(); el.blur(); } }; }
   });
   const ba = $('#bAlta'); if (ba) ba.onclick = () => { UI.grid.push({ dni: '', ficha: '', nombre: '', dias: '', faltas: 0, vac: 0, dm: 0, he25: 0, he35: 0, bono: 0, mov: 0, movimiento: maestroDe(SES.emp).length ? 'ALTA' : '', fecha: '', sueldo: '', obs: '' }); UI.gridDirty = true; render(); };
